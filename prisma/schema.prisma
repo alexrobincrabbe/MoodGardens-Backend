@@ -1,0 +1,35 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Entry {
+  id        String   @id @default(uuid())
+  text      String
+  songUrl   String?
+  dayKey    String
+  createdAt DateTime @default(now())
+
+  @@index([dayKey])
+}
+
+model Garden {
+  id         String   @id @default(uuid())
+  period     String
+  periodKey  String
+  status     String   @default("PENDING")
+  imageUrl   String?
+  palette    String?
+  seedValue  Int
+  summary    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([period, periodKey])
+}

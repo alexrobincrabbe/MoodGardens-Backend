@@ -42,6 +42,7 @@ const typeDefs = `#graphql
     palette: JSON
     seedValue: Int!
     summary: String
+    progress: Int!        # <-- NEW: 0..100
     createdAt: String!
     updatedAt: String!
   }
@@ -51,7 +52,7 @@ const typeDefs = `#graphql
   }
 
   type Mutation {
-    upsertEntry(text: String!, songUrl: String): Entry!
+    upsertEntry(text: String!, songUrl: String, dayKey: String!): Entry!
     requestGarden(period: GardenPeriod!, periodKey: String!): Garden!
   }
 `;
@@ -67,6 +68,7 @@ type GardenArgs = {
 type UpsertEntryArgs = {
   text: string;
   songUrl?: string | null;
+  dayKey: string; // YYYY-MM-DD coming from the client (same as isoDayKey())
 };
 
 // If you have a Context later, define it here
@@ -96,8 +98,7 @@ const resolvers = {
 
   Mutation: {
     upsertEntry: async (_parent: unknown, args: UpsertEntryArgs, _ctx: Context) => {
-      const { text, songUrl } = args;
-      const dayKey = new Date().toISOString().slice(0, 10);
+          const { text, songUrl, dayKey } = args;
 
       const entry = await prisma.entry.create({
         data: { text, songUrl: songUrl ?? undefined, dayKey },
@@ -126,6 +127,7 @@ const resolvers = {
           summary: "Your garden is growing…",
           palette: JSON.stringify({ primary: "#88c0ff" }),
           seedValue,
+          progress: 0, // reset progress on new request
         },
         create: {
           period,
@@ -135,6 +137,7 @@ const resolvers = {
           summary: "Your garden is growing…",
           palette: JSON.stringify({ primary: "#88c0ff" }),
           seedValue,
+          progress: 0,
         },
       });
 
@@ -150,22 +153,26 @@ const resolvers = {
   },
 };
 
-
 async function main() {
   const app = express();
 
-  app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  }));
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      credentials: true,
+    })
+  );
   app.use(express.json());
 
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();
 
-  app.use("/graphql", expressMiddleware(server, {
-    context: async () => ({}),
-  }));
+  app.use(
+    "/graphql",
+    expressMiddleware(server, {
+      context: async () => ({}),
+    })
+  );
 
   app.get("/healthz", (_req, res) => res.send("ok"));
 
@@ -174,7 +181,7 @@ async function main() {
   });
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

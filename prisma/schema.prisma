@@ -28,6 +28,7 @@ model Garden {
   palette    String?
   seedValue  Int
   summary    String?
+  progress   Int      @default(0) // <-- NEW: 0..100 while generating; 100 when READY
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

@@ -40,6 +40,7 @@ const typeDefs = `#graphql
     palette: JSON
     seedValue: Int!
     summary: String
+    progress: Int!        # <-- NEW: 0..100
     createdAt: String!
     updatedAt: String!
   }
@@ -49,7 +50,7 @@ const typeDefs = `#graphql
   }
 
   type Mutation {
-    upsertEntry(text: String!, songUrl: String): Entry!
+    upsertEntry(text: String!, songUrl: String, dayKey: String!): Entry!
     requestGarden(period: GardenPeriod!, periodKey: String!): Garden!
   }
 `;
@@ -75,8 +76,7 @@ const resolvers = {
     },
     Mutation: {
         upsertEntry: async (_parent, args, _ctx) => {
-            const { text, songUrl } = args;
-            const dayKey = new Date().toISOString().slice(0, 10);
+            const { text, songUrl, dayKey } = args;
             const entry = await prisma.entry.create({
                 data: { text, songUrl: songUrl ?? undefined, dayKey },
             });
@@ -101,6 +101,7 @@ const resolvers = {
                     summary: "Your garden is growing…",
                     palette: JSON.stringify({ primary: "#88c0ff" }),
                     seedValue,
+                    progress: 0, // reset progress on new request
                 },
                 create: {
                     period,
@@ -110,6 +111,7 @@ const resolvers = {
                     summary: "Your garden is growing…",
                     palette: JSON.stringify({ primary: "#88c0ff" }),
                     seedValue,
+                    progress: 0,
                 },
             });
             await gardenQueue.add("generate", {
@@ -139,7 +141,7 @@ async function main() {
         console.log("GraphQL on http://localhost:4000/graphql");
     });
 }
-main().catch(err => {
+main().catch((err) => {
     console.error(err);
     process.exit(1);
 });

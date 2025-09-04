@@ -1,4 +1,3 @@
-// apps/api/src/queues/garden.queue.ts
 import { Queue } from "bullmq";
 import { redis } from "../redis.js";
 // Queue instance

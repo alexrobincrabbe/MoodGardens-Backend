@@ -23,6 +23,29 @@ const CORS_ORIGINS = (process.env.CORS_ORIGINS || APP_ORIGIN)
     .split(",")
     .map(s => s.trim())
     .filter(Boolean);
+
+// Build allowlist and dynamic CORS options (reuse existing APP_ORIGIN, CORS_ORIGINS)
+const allowedOrigins = new Set<string>([APP_ORIGIN, ...CORS_ORIGINS]);
+
+const corsOptions: cors.CorsOptions = {
+    origin(origin, cb) {
+        if (!origin) return cb(null, true); // non-browser / same-origin
+        try {
+            const host = new URL(origin).hostname;
+            if (allowedOrigins.has(origin) || /\.vercel\.app$/.test(host)) {
+                return cb(null, true);
+            }
+        } catch {
+            /* ignore */
+        }
+        return cb(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Apollo-Require-Preflight"],
+};
+
+
 // Cookie settings for prod (when frontend and backend are on different sites use SameSite=None + secure)
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "true";       // e.g. true in prod (HTTPS)
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;     // e.g. ".moodgardens.app"
@@ -316,12 +339,9 @@ const resolvers = {
 async function main() {
     const app = express();
     app.set("trust proxy", 1); // needed behind Heroku/NGINX for secure cookies, IPs
-    app.use(
-        cors({
-            origin: CORS_ORIGINS,
-            credentials: true,
-        })
-    );
+    app.use(cors(corsOptions));
+    app.options("*", cors(corsOptions)); // handle preflight
+
     app.use(cookieParser());
     app.use(express.json());
 
@@ -407,11 +427,11 @@ ${img ? `<meta name="twitter:image" content="${img}">` : ""}
 
     app.get("/healthz", (_req, res) => res.send("ok"));
 
-     const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
-  app.listen(PORT, () => {
-    console.log(`GraphQL on http://0.0.0.0:${PORT}/graphql`);
-    console.log(`Public shares on ${PUBLIC_ORIGIN}/share/:shareId`);
-  });
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+    app.listen(PORT, () => {
+        console.log(`GraphQL on http://0.0.0.0:${PORT}/graphql`);
+        console.log(`Public shares on ${PUBLIC_ORIGIN}/share/:shareId`);
+    });
 }
 
 function escapeHtml(s: string) {

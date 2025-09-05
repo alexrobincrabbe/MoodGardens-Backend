@@ -1,17 +1,23 @@
 // apps/api/src/redis.ts
-import IORedis from "ioredis";
+import IORedis, { RedisOptions } from "ioredis";
 
-// Prefer REDIS_URL, fall back to REDISCLOUD_URL (Heroku Redis Cloud)
+// Prefer Heroku Redis Cloud var, then REDIS_URL, then local dev
 const url =
-  process.env.REDIS_URL ||
   process.env.REDISCLOUD_URL ||
+  process.env.REDIS_URL ||
   "redis://127.0.0.1:6379";
 
 const useTls = url.startsWith("rediss://");
 
-export const redis = new IORedis(url, {
+const opts: RedisOptions = {
+  // BullMQ requirement (for blocking commands)
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+
+  // Enable TLS if using a rediss:// endpoint
   ...(useTls ? { tls: { rejectUnauthorized: false } } : {}),
-  // These options help with managed Redis/proxies. Uncomment if needed:
-  // maxRetriesPerRequest: null,
-  // enableReadyCheck: false,
-});
+  // Optional niceties:
+  // connectionName: "mood-gardens",
+};
+
+export const redis = new IORedis(url, opts);

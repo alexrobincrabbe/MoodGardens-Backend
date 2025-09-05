@@ -194,3 +194,22 @@ gardenWorker.on("failed", async (job, err) => {
   });
   console.error("[garden.worker] failed:", err);
 });
+
+
+gardenWorker.on("ready", () => {
+  console.log("[garden.worker] ready and listening");
+});
+gardenWorker.on("active", (job) => {
+  console.log("[garden.worker] processing", job.id, "gardenId=", job.data.gardenId);
+});
+gardenWorker.on("completed", (job, result) => {
+  console.log("[garden.worker] completed", job.id, result);
+});
+gardenWorker.on("failed", async (job, err) => {
+  if (!job) return;
+  await prisma.garden.update({
+    where: { id: job.data.gardenId },
+    data: { status: "FAILED", summary: "Generation failed." },
+  });
+  console.error("[garden.worker] failed:", err);
+});

@@ -1,12 +1,25 @@
 // prisma/schema.prisma
 
+// prisma/schema.prisma
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+
 generator client {
   provider = "prisma-client-js"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  createdAt     DateTime @default(now())
+
+  // Relations
+  entries  Entry[]
+  gardens  Garden[]
 }
 
 model Entry {
@@ -16,7 +29,12 @@ model Entry {
   dayKey    String
   createdAt DateTime @default(now())
 
+  // NEW: user relation (optional for now; we'll make required later)
+  userId String?
+  user   User?     @relation(fields: [userId], references: [id])
+
   @@index([dayKey])
+  @@index([userId, dayKey])
 }
 
 model Garden {
@@ -28,9 +46,16 @@ model Garden {
   palette    String?
   seedValue  Int
   summary    String?
-  progress   Int      @default(0) // <-- NEW: 0..100 while generating; 100 when READY
+  progress   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([period, periodKey])
+  // NEW: public share identifier (short, opaque)
+  shareId    String?  @unique
+
+  // Existing user relation
+  userId String?
+  user   User?     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, period, periodKey])
 }

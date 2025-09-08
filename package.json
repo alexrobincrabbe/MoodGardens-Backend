@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@apollo/server": "^4.11.0",
+    "@aws-sdk/client-kms": "^3.883.0",
+    "@azure/identity": "^4.11.1",
+    "@azure/keyvault-keys": "^4.10.0",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.58.2",

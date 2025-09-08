@@ -1,40 +1,49 @@
 // prisma/schema.prisma
-
-// prisma/schema.prisma
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 
 generator client {
   provider = "prisma-client-js"
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String    @id @default(uuid())
+  email         String    @unique
   passwordHash  String
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   // Relations
   entries  Entry[]
   gardens  Garden[]
+  userKey  UserKey?
 }
 
 model Entry {
-  id        String   @id @default(uuid())
-  text      String
-  songUrl   String?
-  dayKey    String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
 
-  // NEW: user relation (optional for now; we'll make required later)
+  // (Deprecated soon) Plaintext kept temporarily for backfill.
+  // We'll migrate data into ciphertext and then remove this.
+  text       String
+
+  songUrl    String?
+  dayKey     String
+  createdAt  DateTime @default(now())
+
+  // --- New encryption fields (nullable for now; will become required) ---
+  iv         Bytes?
+  authTag    Bytes?
+  ciphertext Bytes?
+  keyVersion Int      @default(1)
+
+  // User relation (keep optional if you still have legacy rows without userId)
   userId String?
   user   User?     @relation(fields: [userId], references: [id])
 
   @@index([dayKey])
   @@index([userId, dayKey])
+  @@index([userId, createdAt])
 }
 
 model Garden {
@@ -49,13 +58,21 @@ model Garden {
   progress   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  // NEW: public share identifier (short, opaque)
   shareId    String?  @unique
-
-  // Existing user relation
   userId String?
   user   User?     @relation(fields: [userId], references: [id])
 
   @@unique([userId, period, periodKey])
+}
+
+model UserKey {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  edek      Bytes    // KMS-encrypted Data Encryption Key (EDEK)
+  keyId     String   // ARN or key id of the KMS CMK used
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
 }

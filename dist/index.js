@@ -13,14 +13,38 @@ import crypto from "crypto";
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || "dev-insecure-secret";
 // Where the public /share/:id page will be served from (must actually route there)
-const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN || "http://localhost:4000";
+// normalize helpers
+const normalizeOrigin = (s) => s.replace(/\/+$/, "");
+// Where the public /share/:id page will be served from (must actually route there)
+const PUBLIC_ORIGIN = normalizeOrigin(process.env.PUBLIC_ORIGIN || "http://localhost:4000");
 // Your web client origin (used for CORS and the “Open Mood Gardens” link)
-const APP_ORIGIN = process.env.APP_ORIGIN || "http://localhost:5173";
+const APP_ORIGIN = normalizeOrigin(process.env.APP_ORIGIN || "http://localhost:5173");
 // Optional: comma-separated list of allowed CORS origins (overrides APP_ORIGIN if provided)
 const CORS_ORIGINS = (process.env.CORS_ORIGINS || APP_ORIGIN)
     .split(",")
-    .map(s => s.trim())
+    .map(s => normalizeOrigin(s.trim()))
     .filter(Boolean);
+// Build allowlist and dynamic CORS options (reuse existing APP_ORIGIN, CORS_ORIGINS)
+const allowedOrigins = new Set([APP_ORIGIN, ...CORS_ORIGINS]);
+const corsOptions = {
+    origin(origin, cb) {
+        if (!origin)
+            return cb(null, true); // non-browser / same-origin
+        try {
+            const host = new URL(origin).hostname;
+            if (allowedOrigins.has(origin) || /\.vercel\.app$/.test(host)) {
+                return cb(null, true);
+            }
+        }
+        catch {
+            /* ignore */
+        }
+        return cb(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Apollo-Require-Preflight"],
+};
 // Cookie settings for prod (when frontend and backend are on different sites use SameSite=None + secure)
 const COOKIE_SECURE = process.env.COOKIE_SECURE === "true"; // e.g. true in prod (HTTPS)
 const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined; // e.g. ".moodgardens.app"
@@ -94,13 +118,16 @@ function generateShareId() {
     // short, URL-safe id
     return crypto.randomBytes(8).toString("hex"); // 16 hex chars
 }
+function shareUrlFor(id) {
+    return new URL(`share/${id}`, PUBLIC_ORIGIN + "/").toString(); // always single slash
+}
 function mapGardenOut(garden) {
     if (!garden)
         return null;
     return {
         ...garden,
         palette: garden.palette ? JSON.parse(garden.palette) : null,
-        shareUrl: garden.shareId ? `${PUBLIC_ORIGIN}/share/${garden.shareId}` : null,
+        shareUrl: garden.shareId ? shareUrlFor(garden.shareId) : null,
     };
 }
 function signJwt(payload) {
@@ -273,68 +300,71 @@ const resolvers = {
 };
 async function main() {
     const app = express();
-    app.use(cors({
-        origin: CORS_ORIGINS,
-        credentials: true,
-    }));
+    app.use((req, _res, next) => {
+        console.log("[API]", req.method, req.url);
+        next();
+    });
+    // accept with or without .json
+    app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
+        const { shareId } = req.params;
+        console.log("[share-meta] requested:", shareId);
+        const garden = await prisma.garden.findUnique({ where: { shareId } });
+        console.log("[share-meta] found:", !!garden);
+        if (!garden)
+            return res.status(404).json({ error: "not_found" });
+        const title = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
+        const desc = garden.summary || "A garden grown from my day.";
+        const img = garden.imageUrl || null;
+        const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
+        res.json({ title, desc, img, period: garden.period, periodKey: garden.periodKey, viewLink });
+    });
+    app.use((req, _res, next) => {
+        console.log("[API]", req.method, req.url);
+        next();
+    });
+    app.set("trust proxy", 1); // needed behind Heroku/NGINX for secure cookies, IPs
+    app.use(cors(corsOptions));
+    app.options("*", cors(corsOptions)); // handle preflight
     app.use(cookieParser());
     app.use(express.json());
     // --- Public share page with OpenGraph tags ---
-    app.get("/share/:shareId", async (req, res) => {
+    app.get("/share-meta/:shareId.json", async (req, res) => {
         const { shareId } = req.params;
         const garden = await prisma.garden.findUnique({ where: { shareId } });
-        if (!garden) {
-            res.status(404).send("<h1>Not found</h1>");
-            return;
-        }
+        if (!garden)
+            return res.status(404).json({ error: "not_found" });
         const title = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
         const desc = garden.summary || "A garden grown from my day.";
-        const img = garden.imageUrl || "";
-        const canonical = `${PUBLIC_ORIGIN}/share/${shareId}`;
-        const viewLink = garden.period === "DAY"
-            ? `${APP_ORIGIN}/today`
-            : `${APP_ORIGIN}/gardens`;
-        // Minimal OG page
-        const html = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>${escapeHtml(title)}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="canonical" href="${canonical}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Mood Gardens">
-<meta property="og:title" content="${escapeHtml(title)}">
-<meta property="og:description" content="${escapeHtml(desc)}">
-${img ? `<meta property="og:image" content="${img}">` : ""}
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(desc)}">
-${img ? `<meta name="twitter:image" content="${img}">` : ""}
-<style>
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 24px; line-height: 1.5; }
-  .card { max-width: 680px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-  .img { display: block; width: 100%; }
-  .content { padding: 16px; }
-  .btn { display: inline-block; border: 1px solid #111; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: #111; }
-</style>
-</head>
-<body>
-  <div class="card">
-    ${img ? `<img class="img" src="${img}" alt="Mood garden image">` : ""}
-    <div class="content">
-      <h1>${escapeHtml(title)}</h1>
-      <p>${escapeHtml(desc)}</p>
-      <a class="btn" href="${viewLink}">Open Mood Gardens</a>
-    </div>
-  </div>
-</body>
-</html>`;
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.send(html);
+        const img = garden.imageUrl || null;
+        const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
+        res.json({
+            title,
+            desc,
+            img,
+            period: garden.period,
+            periodKey: garden.periodKey,
+            viewLink,
+        });
+        console.log("[share-meta] requested:", shareId, "found:", !!garden);
     });
+    console.log("Mounted /share-meta route");
     const server = new ApolloServer({ typeDefs, resolvers });
     await server.start();
+    // ✅ Public share metadata (accept with or without .json; strip suffix)
+    app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
+        const raw = String(req.params.shareId || "");
+        const shareId = raw.replace(/\.json$/i, ""); // strip .json if present
+        console.log("[share-meta] requested raw:", raw, "normalized:", shareId);
+        const garden = await prisma.garden.findUnique({ where: { shareId } });
+        console.log("[share-meta] found:", !!garden);
+        if (!garden)
+            return res.status(404).json({ error: "not_found" });
+        const title = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
+        const desc = garden.summary || "A garden grown from my day.";
+        const img = garden.imageUrl || null;
+        const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
+        res.json({ title, desc, img, period: garden.period, periodKey: garden.periodKey, viewLink });
+    });
     app.use("/graphql", expressMiddleware(server, {
         context: async ({ req, res }) => {
             let userId = null;
@@ -352,8 +382,9 @@ ${img ? `<meta name="twitter:image" content="${img}">` : ""}
         },
     }));
     app.get("/healthz", (_req, res) => res.send("ok"));
-    app.listen(4000, () => {
-        console.log("GraphQL on http://localhost:4000/graphql");
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+    app.listen(PORT, () => {
+        console.log(`GraphQL on http://0.0.0.0:${PORT}/graphql`);
         console.log(`Public shares on ${PUBLIC_ORIGIN}/share/:shareId`);
     });
 }

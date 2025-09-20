@@ -8,12 +8,10 @@ export type GenerateGardenJob = {
   seedValue: number;
 };
 
-// Queue instance
 export const gardenQueue = new Queue<GenerateGardenJob>("garden-generate", {
   connection: redis,
 });
 
-// Optional but useful: keep the last 1k jobs, auto-clean older ones
 export const gardenJobOpts: JobsOptions = {
   removeOnComplete: { count: 1000 },
   removeOnFail: { count: 1000 },

@@ -1,0 +1,154 @@
+// apps/api/src/graphql/resolvers.ts
+import GraphQLJSON from "graphql-type-json";
+import type { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { gardenQueue } from "../queues/garden.queue.js";
+import { mapGardenOut, generateShareId } from "../lib/gardens.js";
+import { signJwt, setAuthCookie, clearAuthCookie, requireUser, type Context } from "../lib/auth.js";
+
+type GardenPeriod = "DAY" | "WEEK" | "MONTH" | "YEAR";
+type GardenArgs = { period: GardenPeriod; periodKey: string };
+type UpsertEntryArgs = { text: string; songUrl?: string | null; dayKey: string };
+type RegisterArgs = { email: string; displayName: string; password: string };
+type LoginArgs = { email: string; password: string };
+
+export function createResolvers(prisma: PrismaClient) {
+  return {
+    JSON: GraphQLJSON,
+
+    Entry: {
+      garden: async (parent: any, _args: any, ctx: Context) => {
+        const userId = requireUser(ctx);
+        const garden = await prisma.garden.findUnique({
+          where: { userId_period_periodKey: { userId, period: "DAY", periodKey: parent.dayKey } },
+        });
+        return mapGardenOut(garden);
+      },
+    },
+
+    Query: {
+      me: async (_: unknown, __: unknown, ctx: Context) => {
+        if (!ctx.userId) return null;
+        return prisma.user.findUnique({
+          where: { id: ctx.userId },
+          select: { id: true, email: true, createdAt: true, displayName: true},
+        });
+      },
+
+      garden: async (_: unknown, args: GardenArgs, ctx: Context) => {
+        const userId = requireUser(ctx);
+        const g = await prisma.garden.findUnique({
+          where: { userId_period_periodKey: { userId, period: args.period, periodKey: args.periodKey } },
+        });
+        return mapGardenOut(g);
+      },
+
+      myEntries: async (_: unknown, args: { limit: number; offset: number }, ctx: Context) => {
+        const userId = requireUser(ctx);
+        return prisma.entry.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: Math.min(100, Math.max(1, args.limit)),
+          skip: Math.max(0, args.offset),
+          select: { id: true, text: true, dayKey: true, createdAt: true },
+        });
+      },
+
+      entryByDay: async (_: unknown, args: { dayKey: string }, ctx: Context) => {
+        const userId = requireUser(ctx);
+        return prisma.entry.findFirst({
+          where: { userId, dayKey: args.dayKey },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, text: true, dayKey: true, createdAt: true },
+        });
+      },
+    },
+
+    Mutation: {
+      register: async (_: unknown, args: RegisterArgs, ctx: Context) => {
+        const existing = await prisma.user.findUnique({ where: { email: args.email } });
+        if (existing) throw new Error("Email already in use");
+        const passwordHash = await bcrypt.hash(args.password, 12);
+        const user = await prisma.user.create({
+          data: { email: args.email, passwordHash, displayName: args.displayName},
+          select: { id: true, email: true, createdAt: true, displayName: true },
+        });
+        const token = signJwt({ sub: user.id });
+        setAuthCookie(ctx.res, token);
+        return { user };
+      },
+
+      login: async (_: unknown, args: LoginArgs, ctx: Context) => {
+        const u = await prisma.user.findUnique({ where: { email: args.email } });
+        if (!u) throw new Error("Invalid credentials");
+        const ok = await bcrypt.compare(args.password, u.passwordHash);
+        if (!ok) throw new Error("Invalid credentials");
+        const user = { id: u.id, email: u.email, createdAt: u.createdAt.toISOString() };
+        const token = signJwt({ sub: user.id });
+        setAuthCookie(ctx.res, token);
+        return { user };
+      },
+
+      logout: async (_: unknown, __: unknown, ctx: Context) => {
+        clearAuthCookie(ctx.res);
+        return true;
+      },
+
+      upsertEntry: async (_: unknown, args: UpsertEntryArgs, ctx: Context) => {
+        const userId = requireUser(ctx);
+        const entry = await prisma.entry.create({
+          data: { text: args.text, songUrl: args.songUrl ?? undefined, dayKey: args.dayKey, userId },
+        });
+        return {
+          ...entry,
+          mood: { valence: 0.2, arousal: 0.6, emotions: [{ key: "stress", val: 0.7 }], tags: ["study", "exam"] },
+        };
+      },
+
+      requestGarden: async (_: unknown, args: GardenArgs, ctx: Context) => {
+        const userId = requireUser(ctx);
+        const seedValue = Math.floor(Math.random() * 1e9);
+
+        let pending = await prisma.garden.upsert({
+          where: { userId_period_periodKey: { userId, period: args.period, periodKey: args.periodKey } },
+          update: {
+            status: "PENDING",
+            imageUrl: null,
+            summary: "Your garden is growing…",
+            palette: JSON.stringify({ primary: "#88c0ff" }),
+            seedValue,
+            progress: 0,
+          },
+          create: {
+            userId,
+            period: args.period,
+            periodKey: args.periodKey,
+            status: "PENDING",
+            imageUrl: null,
+            summary: "Your garden is growing…",
+            palette: JSON.stringify({ primary: "#88c0ff" }),
+            seedValue,
+            progress: 0,
+            shareId: generateShareId(),
+          },
+        });
+
+        if (!pending.shareId) {
+          pending = await prisma.garden.update({
+            where: { id: pending.id },
+            data: { shareId: generateShareId() },
+          });
+        }
+
+        await gardenQueue.add("generate", {
+          gardenId: pending.id,
+          period: args.period,
+          periodKey: args.periodKey,
+          seedValue,
+        });
+
+        return mapGardenOut(pending);
+      },
+    },
+  };
+}

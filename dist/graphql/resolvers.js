@@ -50,6 +50,19 @@ export function createResolvers(prisma) {
                     select: { id: true, text: true, dayKey: true, createdAt: true },
                 });
             },
+            myGardensByMonth: async (_, args, ctx) => {
+                const userId = requireUser(ctx);
+                // monthKey is "YYYY-MM" (e.g. "2025-09")
+                const gardens = await prisma.garden.findMany({
+                    where: {
+                        userId,
+                        period: "DAY",
+                        periodKey: { startsWith: `${args.monthKey}-` }, // matches "YYYY-MM-DD"
+                    },
+                    orderBy: { periodKey: "asc" },
+                });
+                return gardens.map(mapGardenOut);
+            },
         },
         Mutation: {
             register: async (_, args, ctx) => {

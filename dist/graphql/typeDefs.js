@@ -53,6 +53,7 @@ export const typeDefs = `#graphql
     garden(period: GardenPeriod!, periodKey: String!): Garden
     myEntries(limit: Int!, offset: Int!): [Entry!]!
     entryByDay(dayKey: String!): Entry
+    myGardensByMonth(monthKey: String!): [Garden!]!
   }
 
   type Mutation {

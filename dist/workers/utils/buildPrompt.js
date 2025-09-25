@@ -270,7 +270,7 @@ Paths & Garden Features
         ${diarySection}
 
         ${context}
-        Use the following as a guide:
+        Use the following as a guide -
         Color psychology:
         ${colourPsychology}
         Plants symbolism:

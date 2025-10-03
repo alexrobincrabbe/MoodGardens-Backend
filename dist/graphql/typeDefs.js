@@ -60,8 +60,8 @@ export const typeDefs = `#graphql
     register(email: String!, password: String!, displayName: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
-
     upsertEntry(text: String!, songUrl: String, dayKey: String!): Entry!
     requestGarden(period: GardenPeriod!, periodKey: String!): Garden!
+    updateDisplayName(displayName: String!): User!
   }
 `;

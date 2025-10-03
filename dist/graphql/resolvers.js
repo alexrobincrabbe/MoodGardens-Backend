@@ -104,6 +104,15 @@ export function createResolvers(prisma) {
                     mood: { valence: 0.2, arousal: 0.6, emotions: [{ key: "stress", val: 0.7 }], tags: ["study", "exam"] },
                 };
             },
+            updateDisplayName: async (_, args, ctx) => {
+                const userId = requireUser(ctx);
+                const updated = await prisma.user.update({
+                    where: { id: userId },
+                    data: { displayName: args.displayName },
+                    select: { id: true, email: true, createdAt: true, displayName: true },
+                });
+                return { ...updated, createdAt: updated.createdAt.toISOString() };
+            },
             requestGarden: async (_, args, ctx) => {
                 const userId = requireUser(ctx);
                 const seedValue = Math.floor(Math.random() * 1e9);

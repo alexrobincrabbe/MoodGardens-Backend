@@ -11,6 +11,7 @@ type GardenArgs = { period: GardenPeriod; periodKey: string };
 type UpsertEntryArgs = { text: string; songUrl?: string | null; dayKey: string };
 type RegisterArgs = { email: string; displayName: string; password: string };
 type LoginArgs = { email: string; password: string };
+type UpdateDisplayNameArgs = { displayName: string };
 
 export function createResolvers(prisma: PrismaClient) {
     return {
@@ -118,6 +119,16 @@ export function createResolvers(prisma: PrismaClient) {
                     ...entry,
                     mood: { valence: 0.2, arousal: 0.6, emotions: [{ key: "stress", val: 0.7 }], tags: ["study", "exam"] },
                 };
+            },
+
+            updateDisplayName: async (_: unknown, args: UpdateDisplayNameArgs, ctx: Context) => {
+                const userId = requireUser(ctx);
+                const updated = await prisma.user.update({
+                    where: { id: userId },
+                    data: { displayName: args.displayName },
+                    select: { id: true, email: true, createdAt: true, displayName: true },
+                });
+                return { ...updated, createdAt: updated.createdAt.toISOString() };
             },
 
             requestGarden: async (_: unknown, args: GardenArgs, ctx: Context) => {

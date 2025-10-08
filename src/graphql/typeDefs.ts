@@ -35,6 +35,7 @@ export const typeDefs = `#graphql
     periodKey: String!
     status: GardenStatus!
     imageUrl: String
+    publicId: String
     palette: JSON
     seedValue: Int!
     summary: String

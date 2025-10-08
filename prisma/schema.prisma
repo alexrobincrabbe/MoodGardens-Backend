@@ -52,6 +52,7 @@ model Garden {
   periodKey  String
   status     String   @default("PENDING")
   imageUrl   String?
+  publicId   String?   @db.VarChar(512)
   palette    String?
   seedValue  Int
   summary    String?

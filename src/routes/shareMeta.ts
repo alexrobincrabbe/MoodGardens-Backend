@@ -1,36 +1,51 @@
+// apps/api/src/routes/share-meta.ts (or your file)
 import type { Express } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { APP_ORIGIN } from "../config/settings.js";
+import { v2 as cloudinary } from "cloudinary";
 
+// Build a proper OG image from Cloudinary publicId
+function ogFromPublicId(publicId: string) {
+  // 1200x630, auto-crop + auto format/quality
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: [
+      { width: 1200, height: 630, crop: "fill", gravity: "auto" },
+      { fetch_format: "auto", quality: "auto" },
+    ],
+  });
+}
 
 /** Mount /share-meta/:shareId (and .json) and normalize the id. */
 export function mountShareMeta(app: Express, prisma: PrismaClient) {
-    app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
-        const raw = String(req.params.shareId || "");
-        const shareId = raw.replace(/\.json$/i, ""); // allow .json suffix
+  app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
+    const raw = String(req.params.shareId || "");
+    const shareId = raw.replace(/\.json$/i, ""); // allow .json suffix
 
-        const garden = await prisma.garden.findUnique({
-            where: { shareId },
-            select: {
-                period: true,
-                periodKey: true,
-                imageUrl: true,
-                summary: true,
-                user: {
-                    select: { displayName: true }, // only what you need
-                },
-            },
-        });
-        if (!garden) return res.status(404).json({ error: "not_found" });
-        const owner = (garden.user?.displayName ?? "").trim() || null;
-
-        const baseTitle = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
-        const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
-        const desc = garden.summary || "A garden grown from my day.";
-        const img = garden.imageUrl || null;
-        const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
-
-        // Keep public payload minimal (avoid leaking PII)
-        res.json({ title, desc, img, period: garden.period, periodKey: garden.periodKey, viewLink });
+    const garden = await prisma.garden.findUnique({
+      where: { shareId },
+      select: {
+        period: true,
+        periodKey: true,
+        publicId: true,        // <— NEW
+        imageUrl: true,        // legacy fallback
+        summary: true,
+        user: { select: { displayName: true } },
+      },
     });
+    if (!garden) return res.status(404).json({ error: "not_found" });
+
+    const owner = (garden.user?.displayName ?? "").trim() || null;
+    const baseTitle = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
+    const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
+    const desc = garden.summary || "A garden grown from my day.";
+
+    // Prefer publicId-built URL; fall back to stored imageUrl
+    const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.imageUrl || null;
+
+    const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
+
+    // Minimal payload for your frontend/SSR or any consumers
+    res.json({ title, desc, img, period: garden.period, periodKey: garden.periodKey, viewLink });
+  });
 }

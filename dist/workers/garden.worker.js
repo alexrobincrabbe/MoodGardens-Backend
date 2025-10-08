@@ -13,14 +13,11 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         where: { id: job.data.gardenId },
         select: { id: true, period: true, periodKey: true, seedValue: true },
     });
-    // --- Progress: started
     await job.updateProgress(10);
     await prisma.garden.update({
         where: { id: garden.id },
         data: { progress: 10, summary: "Gathering inspiration from your diary…" },
     });
-    // Fetch diary text for DAY period (uses your Entry.dayKey)
-    // Later you can extend for WEEK/MONTH/YEAR by aggregating entries for the periodKey range.
     let diaryText = null;
     if (garden.period === "DAY") {
         const entry = await prisma.entry.findFirst({
@@ -30,7 +27,6 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         });
         diaryText = entry?.text ?? null;
     }
-    // --- Progress: preparing prompt
     await job.updateProgress(30);
     await prisma.garden.update({
         where: { id: garden.id },
@@ -42,7 +38,6 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         diaryText,
         seedValue: garden.seedValue,
     });
-    // --- Progress: generating image
     await job.updateProgress(50);
     await prisma.garden.update({
         where: { id: garden.id },
@@ -53,14 +48,11 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         prompt,
         size: "1024x1024",
         quality: "low",
-        // You can also try: style: "vivid" | "natural" (if/when available)
     });
     const b64 = imageResp.data?.[0]?.b64_json;
-    if (!b64) {
+    if (!b64)
         throw new Error("OpenAI image generation returned no image data.");
-    }
     const buffer = Buffer.from(b64, "base64");
-    // --- Progress: uploading
     await job.updateProgress(75);
     await prisma.garden.update({
         where: { id: garden.id },
@@ -70,37 +62,33 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         const upload = cloudinary.uploader.upload_stream({
             resource_type: "image",
             folder: "mood-gardens",
-            public_id: garden.id, // idempotent URL per garden
+            public_id: garden.id, // idempotent: one asset per garden
             overwrite: true,
+            // ▲ If you overwrite, consider invalidation to purge CDN cache:
+            invalidate: true, // optional but handy during iteration
             format: "png",
         }, (err, result) => (err ? reject(err) : resolve(result)));
         upload.end(buffer);
     });
-    // --- Progress: complete
+    // ▲ uploadResult.public_id includes the folder, e.g. "mood-gardens/<gardenId>"
+    //   This is exactly what you should store as your Cloudinary publicId.
     await job.updateProgress(100);
     await prisma.garden.update({
         where: { id: garden.id },
         data: {
             status: "READY",
-            imageUrl: uploadResult.secure_url,
+            imageUrl: uploadResult.secure_url, // legacy/fallback
+            publicId: uploadResult.public_id, // ▲ NEW: primary identifier for Cloudinary
             summary: diaryText && diaryText.trim().length > 0
                 ? "A garden shaped by today’s reflections."
                 : "A calm, reflective garden.",
             progress: 100,
         },
     });
-    return { imageUrl: uploadResult.secure_url };
+    // ▲ Return both for debugging/logs
+    return { imageUrl: uploadResult.secure_url, publicId: uploadResult.public_id };
 }, { connection: redis });
-// Log status
-gardenWorker.on("failed", async (job, err) => {
-    if (!job)
-        return;
-    await prisma.garden.update({
-        where: { id: job.data.gardenId },
-        data: { status: "FAILED", summary: "Generation failed.", progress: 0 },
-    });
-    console.error("[garden.worker] failed:", err);
-});
+// --- Logging (you have duplicated 'failed' handlers—keep one)
 gardenWorker.on("ready", () => {
     console.log("[garden.worker] ready and listening");
 });
@@ -115,7 +103,7 @@ gardenWorker.on("failed", async (job, err) => {
         return;
     await prisma.garden.update({
         where: { id: job.data.gardenId },
-        data: { status: "FAILED", summary: "Generation failed." },
+        data: { status: "FAILED", summary: "Generation failed.", progress: 0 },
     });
     console.error("[garden.worker] failed:", err);
 });

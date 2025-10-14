@@ -10,7 +10,7 @@ function ogFromPublicId(publicId: string) {
   return cloudinary.url(publicId, {
     secure: true,
     transformation: [
-      { width: 1200, height: 630, crop: "fill", gravity: "auto" },
+      { width: 630, height: 630, crop: "fill", gravity: "auto" },
       { fetch_format: "auto", quality: "auto" },
     ],
   });

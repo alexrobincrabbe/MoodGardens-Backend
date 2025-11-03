@@ -50,7 +50,7 @@ export const typeDefs = `#graphql
   }
 
   type Query {
-    me: User
+    user: User
     garden(period: GardenPeriod!, periodKey: String!): Garden
     myEntries(limit: Int!, offset: Int!): [Entry!]!
     entryByDay(dayKey: String!): Entry

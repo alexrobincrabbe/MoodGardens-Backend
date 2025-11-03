@@ -17,7 +17,7 @@ export function createResolvers(prisma) {
             },
         },
         Query: {
-            me: async (_, __, ctx) => {
+            user: async (_, __, ctx) => {
                 if (!ctx.userId)
                     return null;
                 return prisma.user.findUnique({

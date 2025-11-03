@@ -50,7 +50,7 @@ model Garden {
   id         String   @id @default(uuid())
   period     String
   periodKey  String
-  status     String   @default("PENDING")
+    status     String   @default("PENDING")
   imageUrl   String?
   publicId   String?   @db.VarChar(512)
   palette    String?

@@ -28,7 +28,7 @@ export function createResolvers(prisma: PrismaClient) {
         },
 
         Query: {
-            me: async (_: unknown, __: unknown, ctx: Context) => {
+            user: async (_: unknown, __: unknown, ctx: Context) => {
                 if (!ctx.userId) return null;
                 return prisma.user.findUnique({
                     where: { id: ctx.userId },

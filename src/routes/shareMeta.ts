@@ -4,6 +4,27 @@ import type { PrismaClient } from "@prisma/client";
 import { APP_ORIGIN } from "../config/settings.js";
 import { v2 as cloudinary } from "cloudinary";
 
+
+function formatDayKey(dayKey: string): string {
+  const date = new Date(dayKey);
+  if (isNaN(date.getTime())) return dayKey; // fallback if invalid
+
+  const day = date.getDate();
+  const daySuffix =
+    day % 10 === 1 && day !== 11
+      ? "st"
+      : day % 10 === 2 && day !== 12
+      ? "nd"
+      : day % 10 === 3 && day !== 13
+      ? "rd"
+      : "th";
+
+  const weekday = date.toLocaleDateString("en-GB", { weekday: "long" });
+  const month = date.toLocaleDateString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+
+  return `${weekday} ${day}${daySuffix} of ${month} ${year}`;
+}
 // Build a proper OG image from Cloudinary publicId
 function ogFromPublicId(publicId: string) {
   // 1200x630, auto-crop + auto format/quality
@@ -34,18 +55,14 @@ export function mountShareMeta(app: Express, prisma: PrismaClient) {
       },
     });
     if (!garden) return res.status(404).json({ error: "not_found" });
-
+    const formattedDate = formatDayKey(garden.periodKey)
     const owner = (garden.user?.displayName ?? "").trim() || null;
-    const baseTitle = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
+    const baseTitle = `Mood Garden — ${formattedDate}`;
     const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
     const desc = garden.summary || "A garden grown from my day.";
-
-    // Prefer publicId-built URL; fall back to stored imageUrl
     const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.imageUrl || null;
+    const viewLink = `${APP_ORIGIN}`;
 
-    const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
-
-    // Minimal payload for your frontend/SSR or any consumers
-    res.json({ title, desc, img, period: garden.period, periodKey: garden.periodKey, viewLink });
+    res.json({ owner, title, desc, img, period: garden.period, periodKey: garden.periodKey, formattedDate, viewLink });
   });
 }

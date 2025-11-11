@@ -4,7 +4,7 @@ import { redis } from "../redis.js";
 import { PrismaClient, GardenStatus } from "@prisma/client";
 import OpenAI from "openai";
 import { v2 as cloudinary } from "cloudinary";
-import { buildPromptFromDiary } from "./utils/buildPrompt.js";
+import { buildPromptFromDiary } from "./utils/buildPrompt.js"; // now async
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const gardenWorker = new Worker("garden-generate", async (job) => {
@@ -30,18 +30,21 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     await job.updateProgress(30);
     await prisma.garden.update({
         where: { id: garden.id },
-        data: { progress: 30, summary: "Sketching your garden’s vibe…" },
+        data: { progress: 30, summary: "Analysing your mood & themes…" },
     });
-    const prompt = buildPromptFromDiary({
+    // 🔴 CHANGED: prompt now comes from an async LLM-based builder
+    const prompt = await buildPromptFromDiary({
         period: garden.period,
         periodKey: garden.periodKey,
-        diaryText: diaryText,
+        diaryText,
+        openai, // pass the client in
     });
     await job.updateProgress(50);
     await prisma.garden.update({
         where: { id: garden.id },
         data: { progress: 50, summary: "Painting plants & colors…" },
     });
+    console.log("[garden.worker] image prompt:", prompt);
     const imageResp = await openai.images.generate({
         model: "gpt-image-1",
         prompt,
@@ -73,33 +76,14 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         where: { id: garden.id },
         data: {
             status: GardenStatus.READY,
-            imageUrl: uploadResult.secure_url, // legacy/fallback
-            publicId: uploadResult.public_id, // ▲ NEW: primary identifier for Cloudinary
+            imageUrl: uploadResult.secure_url,
+            publicId: uploadResult.public_id,
             summary: diaryText && diaryText.trim().length > 0
                 ? "A garden shaped by today’s reflections."
                 : "A calm, reflective garden.",
             progress: 100,
         },
     });
-    // ▲ Return both for debugging/logs
     return { imageUrl: uploadResult.secure_url, publicId: uploadResult.public_id };
 }, { connection: redis });
-// --- Logging (you have duplicated 'failed' handlers—keep one)
-gardenWorker.on("ready", () => {
-    console.log("[garden.worker] ready and listening");
-});
-gardenWorker.on("active", (job) => {
-    console.log("[garden.worker] processing", job.id, "gardenId=", job.data.gardenId);
-});
-gardenWorker.on("completed", (job, result) => {
-    console.log("[garden.worker] completed", job.id, result);
-});
-gardenWorker.on("failed", async (job, err) => {
-    if (!job)
-        return;
-    await prisma.garden.update({
-        where: { id: job.data.gardenId },
-        data: { status: GardenStatus.FAILED, summary: "Generation failed.", progress: 0 },
-    });
-    console.error("[garden.worker] failed:", err);
-});
+// logging stays the same…

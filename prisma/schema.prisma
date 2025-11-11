@@ -1,79 +1,81 @@
-// prisma/schema.prisma
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
+}
+
+enum GardenPeriod {
+    DAY
+    WEEK
+    MONTH
+    YEAR
+}
+
+enum GardenStatus {
+    PENDING
+    GENERATING
+    READY
+    FAILED
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  createdAt     DateTime @default(now())
-  displayName   String  @default("Anonymous")
-
-  entries  Entry[]
-  gardens  Garden[]
-  userKey  UserKey?
+    id           String       @id @default(uuid())
+    email        String       @unique
+    passwordHash String
+    createdAt    DateTime     @default(now())
+    displayName  String       @default("Anonymous")
+    entries      DiaryEntry[]
+    gardens      Garden[]
+    userKey      UserKey?
 }
 
-model Entry {
-  id         String   @id @default(uuid())
+model DiaryEntry {
+    id         String   @id @default(uuid())
+    text       String
+    dayKey     String
+    createdAt  DateTime @default(now())
+    iv         Bytes?
+    authTag    Bytes?
+    ciphertext Bytes?
+    keyVersion Int      @default(1)
+    userId     String
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  // (Deprecated soon) Plaintext kept temporarily for backfill.
-  // We'll migrate data into ciphertext and then remove this.
-  text       String
-
-  songUrl    String?
-  dayKey     String
-  createdAt  DateTime @default(now())
-
-  // --- New encryption fields (nullable for now; will become required) ---
-  iv         Bytes?
-  authTag    Bytes?
-  ciphertext Bytes?
-  keyVersion Int      @default(1)
-
-  // User relation (keep optional if you still have legacy rows without userId)
-  userId String?
-  user   User?     @relation(fields: [userId], references: [id])
-
-  @@index([dayKey])
-  @@index([userId, dayKey])
-  @@index([userId, createdAt])
+    @@unique([userId, dayKey])
+    @@index([dayKey])
+    @@index([userId, dayKey])
+    @@index([userId, createdAt])
+    @@map("Entry")
 }
 
 model Garden {
-  id         String   @id @default(uuid())
-  period     String
-  periodKey  String
-    status     String   @default("PENDING")
-  imageUrl   String?
-  publicId   String?   @db.VarChar(512)
-  palette    String?
-  seedValue  Int
-  summary    String?
-  progress   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  shareId    String?  @unique
-  userId String?
-  user   User?     @relation(fields: [userId], references: [id])
+    id        String       @id @default(uuid())
+    period    GardenPeriod @default(DAY)
+    periodKey String
+    status    GardenStatus @default(READY)
+    imageUrl  String?
+    publicId  String?      @db.VarChar(512)
+    summary   String?
+    progress  Int          @default(0)
+    createdAt DateTime     @default(now())
+    updatedAt DateTime     @updatedAt
+    shareId   String?      @unique
+    userId    String
+    user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@unique([userId, period, periodKey])
+    @@unique([userId, period, periodKey])
 }
 
 model UserKey {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  edek      Bytes    // KMS-encrypted Data Encryption Key (EDEK)
-  keyId     String   // ARN or key id of the KMS CMK used
-  version   Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user      User     @relation(fields: [userId], references: [id])
+    id        String   @id @default(uuid())
+    userId    String   @unique
+    edek      Bytes
+    keyId     String
+    version   Int      @default(1)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    user      User     @relation(fields: [userId], references: [id])
 }

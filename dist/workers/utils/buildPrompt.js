@@ -1,5 +1,5 @@
 export function buildPromptFromDiary(args) {
-    const { period, periodKey, diaryText, seedValue } = args;
+    const { diaryText } = args;
     // If no diary text found, fall back to a generic calm garden prompt.
     const userText = (diaryText ?? "").trim();
     const hasDiary = userText.length > 0;
@@ -40,7 +40,7 @@ export function buildPromptFromDiary(args) {
             """
             `
         : `No diary text was provided; design a gentle, calming garden that suggests reflection and resilience.`;
-    const context = `Generate the mood garden for ${period} ${periodKey}. Seed: ${seedValue}.`;
+    const context = `Generate the mood garden`;
     // A short directive to keep image model outputs consistent
     const artDirection = `
         `.trim();

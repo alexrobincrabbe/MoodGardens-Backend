@@ -5,7 +5,6 @@ export type GenerateGardenJob = {
   gardenId: string;
   period: "DAY" | "WEEK" | "MONTH" | "YEAR";
   periodKey: string;
-  seedValue: number;
 };
 
 export const gardenQueue = new Queue<GenerateGardenJob>("garden-generate", {

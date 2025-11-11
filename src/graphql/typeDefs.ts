@@ -20,7 +20,7 @@ export const typeDefs = `#graphql
     displayName: String!
   }
 
-  type Entry {
+  type DiaryEntry {
     id: ID!
     text: String!
     dayKey: String!
@@ -52,17 +52,17 @@ export const typeDefs = `#graphql
   type Query {
     user: User
     garden(period: GardenPeriod!, periodKey: String!): Garden
-    myEntries(limit: Int!, offset: Int!): [Entry!]!
-    entryByDay(dayKey: String!): Entry
-    myGardensByMonth(monthKey: String!): [Garden!]!
+    paginatedDiaryEntries(limit: Int!, offset: Int!): [DiaryEntry!]!
+    diaryEntry(dayKey: String!): DiaryEntry
+    gardensByMonth(monthKey: String!): [Garden!]!
   }
 
   type Mutation {
     register(email: String!, password: String!, displayName: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
-    upsertEntry(text: String!, songUrl: String, dayKey: String!): Entry!
-    requestGarden(period: GardenPeriod!, periodKey: String!): Garden!
+    createDiaryEntry(text: String!, songUrl: String, dayKey: String!): DiaryEntry!
+    requestGenerateGarden(period: GardenPeriod!, periodKey: String!): Garden!
     updateDisplayName(displayName: String!): User!
   }
 `;

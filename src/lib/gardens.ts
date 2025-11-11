@@ -1,9 +1,8 @@
-// apps/api/src/lib/gardens.ts
 import crypto from "crypto";
 import { PUBLIC_ORIGIN, joinOrigin } from "../config/settings.js";
 
 export function generateShareId() {
-  return crypto.randomBytes(8).toString("hex"); // 16 hex chars
+  return crypto.randomBytes(8).toString("hex"); 
 }
 
 export function shareUrlFor(id: string) {
@@ -14,7 +13,6 @@ export function mapGardenOut(garden: any) {
   if (!garden) return null;
   return {
     ...garden,
-    palette: garden.palette ? JSON.parse(garden.palette) : null,
     shareUrl: garden.shareId ? shareUrlFor(garden.shareId) : null,
   };
 }

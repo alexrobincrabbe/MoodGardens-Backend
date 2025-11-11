@@ -46,15 +46,13 @@ export function mountShareMeta(app, prisma) {
         });
         if (!garden)
             return res.status(404).json({ error: "not_found" });
+        const formattedDate = formatDayKey(garden.periodKey);
         const owner = (garden.user?.displayName ?? "").trim() || null;
-        const baseTitle = `Mood Gardens — ${garden.period} ${garden.periodKey}`;
+        const baseTitle = `Mood Garden — ${formattedDate}`;
         const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
         const desc = garden.summary || "A garden grown from my day.";
-        const formattedDate = formatDayKey(garden.periodKey);
-        // Prefer publicId-built URL; fall back to stored imageUrl
         const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.imageUrl || null;
-        const viewLink = garden.period === "DAY" ? `${APP_ORIGIN}/today` : `${APP_ORIGIN}/gardens`;
-        // Minimal payload for your frontend/SSR or any consumers
+        const viewLink = `${APP_ORIGIN}`;
         res.json({ owner, title, desc, img, period: garden.period, periodKey: garden.periodKey, formattedDate, viewLink });
     });
 }

@@ -1,7 +1,7 @@
 // apps/api/src/workers/garden.worker.ts
 import { Worker } from "bullmq";
 import { redis } from "../redis.js";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, GardenStatus } from "@prisma/client";
 import OpenAI from "openai";
 import { v2 as cloudinary } from "cloudinary";
 import { buildPromptFromDiary } from "./utils/buildPrompt.js";
@@ -11,7 +11,7 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     const { period, periodKey } = job.data;
     const garden = await prisma.garden.findUniqueOrThrow({
         where: { id: job.data.gardenId },
-        select: { id: true, period: true, periodKey: true, seedValue: true },
+        select: { id: true, period: true, periodKey: true },
     });
     await job.updateProgress(10);
     await prisma.garden.update({
@@ -20,12 +20,12 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     });
     let diaryText = null;
     if (garden.period === "DAY") {
-        const entry = await prisma.entry.findFirst({
+        const diaryEntry = await prisma.diaryEntry.findFirst({
             where: { dayKey: garden.periodKey },
             orderBy: { createdAt: "desc" },
             select: { text: true },
         });
-        diaryText = entry?.text ?? null;
+        diaryText = diaryEntry?.text ?? null;
     }
     await job.updateProgress(30);
     await prisma.garden.update({
@@ -35,8 +35,7 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     const prompt = buildPromptFromDiary({
         period: garden.period,
         periodKey: garden.periodKey,
-        diaryText,
-        seedValue: garden.seedValue,
+        diaryText: diaryText,
     });
     await job.updateProgress(50);
     await prisma.garden.update({
@@ -62,21 +61,18 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         const upload = cloudinary.uploader.upload_stream({
             resource_type: "image",
             folder: "mood-gardens",
-            public_id: garden.id, // idempotent: one asset per garden
+            public_id: garden.id,
             overwrite: true,
-            // ▲ If you overwrite, consider invalidation to purge CDN cache:
-            invalidate: true, // optional but handy during iteration
+            invalidate: true,
             format: "png",
         }, (err, result) => (err ? reject(err) : resolve(result)));
         upload.end(buffer);
     });
-    // ▲ uploadResult.public_id includes the folder, e.g. "mood-gardens/<gardenId>"
-    //   This is exactly what you should store as your Cloudinary publicId.
     await job.updateProgress(100);
     await prisma.garden.update({
         where: { id: garden.id },
         data: {
-            status: "READY",
+            status: GardenStatus.READY,
             imageUrl: uploadResult.secure_url, // legacy/fallback
             publicId: uploadResult.public_id, // ▲ NEW: primary identifier for Cloudinary
             summary: diaryText && diaryText.trim().length > 0
@@ -103,7 +99,7 @@ gardenWorker.on("failed", async (job, err) => {
         return;
     await prisma.garden.update({
         where: { id: job.data.gardenId },
-        data: { status: "FAILED", summary: "Generation failed.", progress: 0 },
+        data: { status: GardenStatus.FAILED, summary: "Generation failed.", progress: 0 },
     });
     console.error("[garden.worker] failed:", err);
 });

@@ -27,7 +27,8 @@
     "graphql-type-json": "^0.3.2",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
-    "openai": "^5.17.0"
+    "openai": "^5.17.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -4,7 +4,7 @@ import { redis } from "../redis.js";
 import { PrismaClient, GardenStatus } from "@prisma/client";
 import OpenAI from "openai";
 import { v2 as cloudinary } from "cloudinary";
-import { buildPromptFromDiary } from "./utils/buildPrompt.js"; // now async
+import { buildPromptFromDiary } from "./utils/buildPromptFromDiary.js"; // now async
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const gardenWorker = new Worker("garden-generate", async (job) => {
@@ -32,12 +32,9 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         where: { id: garden.id },
         data: { progress: 30, summary: "Analysing your mood & themes…" },
     });
-    // 🔴 CHANGED: prompt now comes from an async LLM-based builder
-    const prompt = await buildPromptFromDiary({
-        period: garden.period,
-        periodKey: garden.periodKey,
+    const { prompt /*, mood*/ } = await buildPromptFromDiary({
         diaryText,
-        openai, // pass the client in
+        openai,
     });
     await job.updateProgress(50);
     await prisma.garden.update({
@@ -47,7 +44,7 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     console.log("[garden.worker] image prompt:", prompt);
     const imageResp = await openai.images.generate({
         model: "gpt-image-1",
-        prompt,
+        prompt, // ✅ string
         size: "1024x1024",
         quality: "low",
     });
@@ -86,4 +83,3 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     });
     return { imageUrl: uploadResult.secure_url, publicId: uploadResult.public_id };
 }, { connection: redis });
-// logging stays the same…

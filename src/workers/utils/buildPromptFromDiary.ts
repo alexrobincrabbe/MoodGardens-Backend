@@ -1,13 +1,15 @@
 // buildPromptFromDiary.ts
 import type OpenAI from "openai";
 import { analyseDiaryMood } from "./analyseDiaryMood.js";
-import { type MoodAnalysis, type Valence, type Energy, type PrimaryEmotion, type Intensity } from "./mood.types.js";
+import { type MoodAnalysis, type Valence, type Seriousness, type PrimaryEmotion, type Intensity } from "./mood.types.js";
 import { selectStylePack } from "./chooseStyle.js";
 import { selectArchetype } from "./chooseArchitype.js";
 import { selectWeather } from "./chooseWeather.js";
+import { selectTree } from "./chooseTree.js";
+import { selectFlowers } from "./chooseFlower.js";
 
 const CAMERAS = [
-    "wide bird’s-eye view", "isometric view", "eye-level view from a garden path",
+    "wide bird’s-eye view", "isometric view", "eye-level view",
     "low angle looking up through foliage", "close-up of a small section of the garden",
 ];
 
@@ -22,12 +24,12 @@ export async function buildPromptFromDiary(args: {
 
     const mood: MoodAnalysis = await analyseDiaryMood(openai, userText);
     console.log("[buildPromptFromDiary] mood analysis result:", JSON.stringify(mood, null, 2));
-    const style = selectStylePack(mood.valence as Valence, mood.energy as Energy);
+    const style = selectStylePack(mood.valence as Valence, mood.earnestness as Seriousness);
 
     const intensityBand =
         (mood.intensity as Intensity) <= 2 ? "low"
-            : (mood.intensity as Intensity) === 3 ? "medium"
-                : "high";
+            : (mood.intensity as Intensity) === 5 ? "high"
+                : "medium";
 
     const archetype = selectArchetype(
         mood.primary_emotion as PrimaryEmotion,
@@ -36,8 +38,17 @@ export async function buildPromptFromDiary(args: {
 
     const camera = pick(CAMERAS);
     const weather = selectWeather(mood.primary_emotion, mood.intensity);
-
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
+    const tree = selectTree(mood.primary_emotion);
+    const flowers = selectFlowers(mood.secondary_emotions);
+    const combinedSymbols = [
+        ...mood.symbolic_elements,
+        ...flowers,
+    ];
+    const treeLine =
+        tree === "ivy"
+            ? "Trailing ivy winds through the garden."
+            : `Include this type of tree in the garden: ${tree}.`;
 
     const prompt = `
         ${style.label} illustration of a ${archetype}, seen from a ${camera}.
@@ -50,8 +61,12 @@ export async function buildPromptFromDiary(args: {
         Use a color palette inspired by:
         ${mood.color_palette.join(", ")}
 
+        ${treeLine}
+        include these flowers: 
+        ${flowers.join(", ")}
+
         Include these symbolic elements:
-        ${mood.symbolic_elements.join(", ")}
+        ${mood.symbolic_elements.join(", ")}.
 
         Allow surreal / whimsical combinations.
         No people, no text or letters, no frames or borders.

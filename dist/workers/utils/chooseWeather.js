@@ -1,78 +1,111 @@
 const WEATHERS = {
-    //joy
+    // joy
     FLUFFY_CLOUDS: "fluffy clouds",
     CLEAR_SKY: "clear sky",
     SUNSHINE: "sunshine",
     RAINBOW: "rainbow",
     DOUBLE_RAINBOW: "double rainbow",
-    //sadness
+    // sadness
     VIRGA: "virga",
     LIGHT_FOG: "light fog",
     GLOOMY_FOG: "gloomy fog",
     DOWNPOUR: "downpour",
     FLOOD: "flood",
-    //anxiety
+    // anxiety
     DISTANT_STORM: "distant storm",
     LOW_MIST: "gloomy creeping mist",
     GALE_WINDS: "gale winds",
     LIGHTING_STORM: "lightning storm",
     TORNADOES: "tornadoes",
-    //anger
+    // anger
     HEAT_SHIMMER: "heat shimmer",
     DARK_SKIES: "dark skies",
     SANDSTORM: "sandstorms",
     HURRICANE: "hurricane",
     TSUNAMI: "tsunamis",
-    //love
+    // love
     WARM_GLOW: "warm glow sunshine",
     PINK_SUNSET: "pink sunset",
-    STARRY_SKY: "starry sky",
+    STARRY_SKY: "a glowing blue sky dotted with hundreds of clear, twinkling stars",
     SHOOTING_STAR: "shooting star",
     FIRE_RAINBOW: "fire rainbow",
-    //guilt
+    // guilt
     SCATTERED_CLOUDS: "scattered clouds",
     OVERCAST: "overcast",
     LIGHT_MIST: "light mist",
     DENSE_FOG: "dense fog",
     BLOOD_MOON: "blood moon cover in mist",
-    //hope
+    // hope
     BLUE_SKY: "blue skies",
     HAZE: "haze",
     SUN_SHOWER: "sun shower",
     SILVER_LINING: "silver lined clouds",
-    RAY_OF_SUN: "Rays of sun bursting through the clouds",
-    //Loneliness
+    RAY_OF_SUN: "rays of sun bursting through the clouds",
+    // loneliness
     DRIZZLE: "drizzle",
     FROST: "frost",
     LONE_STAR: "night sky with a lone star",
     SNOWFALL: "snowfall",
     GLACIERS: "glaciers and icicles",
-    //silliness
+    // silliness
     SPIRAL_CLOUDS: "spiral clouds",
     CANDY_CLOUDS: "candy floss clouds",
     PINK_CLOUDS: "pink clouds",
-    SPARKLY_CLOUDS: "sparkly clouds",
     ELEPHANT_CLOUDS: "elephant shaped clouds",
-    //disappointment
-    //same as sadness
-    //excitement
+    // excitement / awe extras
     LENTICULAR_CLOUDS: "lenticular clouds",
     EARTHQUAKE_LIGHTS: "earthquake lights",
     LIGHT_PILLARS: "light pillars",
     AURORA: "aurora",
     METEOR_SHOWER: "meteor shower",
-    // Jealousy
+    // jealousy
     MURKY: "murky skies",
     GREEN_LIGHTNING: "green lightning",
     HAIL: "hail",
     HEATWAVE: "heat wave",
     GREEN_SKIES: "green angry skies",
-    //borededom
+    // boredom
     STRATUS: "stratus clouds",
     GREY: "grey skies",
     GLOOM: "dusky gloom",
     WHITE: "blank white sky",
     BLACK: "black night sky, no clouds, stars or moon",
+    // NEW: serenity
+    CALM_BLUE: "calm pale blue sky",
+    GENTLE_BREEZE: "gentle breeze with soft clouds",
+    GOLDEN_HOUR: "soft golden hour light",
+    TRANQUIL_TWILIGHT: "tranquil blue-purple twilight",
+    SERENE_NIGHT: "quiet clear night sky with soft stars",
+    // NEW: creativity
+    PATCHWORK_CLOUDS: "patchwork clouds drifting across the sky",
+    SPARKLY_CLOUDS: "clouds shimmering, sparkling like tiny lightbulbs",
+    PAINTED_SKY: "painted multi-colored evening sky",
+    COLOR_STREAKS: "color-streaked sky",
+    SUNRAY_FANS: "fan of sunrays breaking through clouds",
+    // NEW: lust
+    HUMID_HAZE: "warm humid evening haze",
+    CRIMSON_SUNSET: "deep crimson sunset",
+    VELVET_NIGHT: "velvet night sky with a glowing horizon",
+    // NEW: resilience
+    PASSING_SHOWERS: "passing showers with glimpses of sun",
+    CLEARING_STORM: "storm clouds parting to reveal clear sky",
+    // NEW: curiosity
+    WANDERING_CLOUDS: "small wandering clouds across a wide sky",
+    ODDLY_SHAPED_CLOUDS: "pareidolia clouds, not quite discernible",
+    SHAFTS_OF_LIGHT: "shafts of light through cloud gaps",
+    DAPPLED_LIGHT: "dappled light filtering through thin clouds",
+    // NEW: confusion
+    SWIRLING_MIST: "swirling patchy mist",
+    PATCHY_FOG: "patchy fog with shifting gaps",
+    CHAOTIC_CLOUDS: "chaotic swirling clouds overhead",
+    SWIRLING_STORM: "a strange swirling storm approaches",
+    // NEW: embarrassment
+    BLUSH_SKY: "pale pink-tinted sky behind thin clouds",
+    DRIFTING_VEIL: "thin veils of cloud drifting across the sun",
+    //NEW: contempative
+    DISTANT_PLANET: "a dark blue sky with a light mist, a distant planet glows bright blue",
+    PURPLE_LIGHTNING: "a tropical storm with intense flashes of purple lightning",
+    SHAFTS_OF_TWINKLING_LIGHT: "shafts of sparkling, twinkling light through cloud gaps",
 };
 const WEATHER_MATRIX = {
     joy: {
@@ -159,19 +192,84 @@ const WEATHER_MATRIX = {
         4: WEATHERS.HEATWAVE,
         5: WEATHERS.GREEN_SKIES,
     },
-    overwhelm: {
-        1: WEATHERS.VIRGA,
-        2: WEATHERS.LIGHT_FOG,
-        3: WEATHERS.GLOOMY_FOG,
-        4: WEATHERS.DOWNPOUR,
-        5: WEATHERS.FLOOD,
-    },
     boredom: {
         1: WEATHERS.STRATUS,
         2: WEATHERS.GREY,
         3: WEATHERS.GLOOM,
         4: WEATHERS.WHITE,
         5: WEATHERS.BLACK,
+    },
+    // NEW: serenity
+    serenity: {
+        1: WEATHERS.CALM_BLUE,
+        2: WEATHERS.GENTLE_BREEZE,
+        3: WEATHERS.GOLDEN_HOUR,
+        4: WEATHERS.TRANQUIL_TWILIGHT,
+        5: WEATHERS.SERENE_NIGHT,
+    },
+    // NEW: creativity
+    creativity: {
+        1: WEATHERS.PATCHWORK_CLOUDS,
+        2: WEATHERS.SPARKLY_CLOUDS,
+        3: WEATHERS.PAINTED_SKY,
+        4: WEATHERS.SUNRAY_FANS,
+        5: WEATHERS.AURORA,
+    },
+    // NEW: lust
+    lust: {
+        1: WEATHERS.HUMID_HAZE,
+        2: WEATHERS.CRIMSON_SUNSET,
+        3: WEATHERS.HEATWAVE,
+        4: WEATHERS.PURPLE_LIGHTNING,
+        5: WEATHERS.VELVET_NIGHT,
+    },
+    // NEW: resilience
+    resilience: {
+        1: WEATHERS.DRIZZLE,
+        2: WEATHERS.PASSING_SHOWERS,
+        3: WEATHERS.CLEARING_STORM,
+        4: WEATHERS.SILVER_LINING,
+        5: WEATHERS.RAY_OF_SUN,
+    },
+    // NEW: curiosity
+    curiosity: {
+        1: WEATHERS.WANDERING_CLOUDS,
+        2: WEATHERS.ODDLY_SHAPED_CLOUDS,
+        3: WEATHERS.SHAFTS_OF_TWINKLING_LIGHT,
+        4: WEATHERS.DAPPLED_LIGHT,
+        5: WEATHERS.LENTICULAR_CLOUDS,
+    },
+    // NEW: awe
+    awe: {
+        1: WEATHERS.LENTICULAR_CLOUDS,
+        2: WEATHERS.LIGHT_PILLARS,
+        3: WEATHERS.AURORA,
+        4: WEATHERS.EARTHQUAKE_LIGHTS,
+        5: WEATHERS.METEOR_SHOWER,
+    },
+    // NEW: contemplative
+    contemplative: {
+        1: WEATHERS.LIGHT_MIST,
+        2: WEATHERS.HAZE,
+        3: WEATHERS.STARRY_SKY,
+        4: WEATHERS.LONE_STAR,
+        5: WEATHERS.DISTANT_PLANET,
+    },
+    // NEW: confusion
+    confusion: {
+        1: WEATHERS.SWIRLING_MIST,
+        2: WEATHERS.PATCHY_FOG,
+        3: WEATHERS.HAZE,
+        4: WEATHERS.CHAOTIC_CLOUDS,
+        5: WEATHERS.SWIRLING_STORM,
+    },
+    // NEW: embarrassment
+    embarrassment: {
+        1: WEATHERS.BLUSH_SKY,
+        2: WEATHERS.DRIFTING_VEIL,
+        3: WEATHERS.HAZE,
+        4: WEATHERS.LIGHT_FOG,
+        5: WEATHERS.GLOOMY_FOG,
     },
 };
 // ─── Selector ─────────────────────────────────────────────────────────────

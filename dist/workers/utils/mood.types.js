@@ -1,14 +1,32 @@
-// mood.types.ts
 import { z } from "zod";
-// ---- canonical option lists (single source of truth)
 export const VALENCES = ["positive", "mixed", "negative"];
-export const ENERGIES = ["low", "medium", "high"];
-// ⚠️ unify names across your app (no "boredom"/"calmness"/"neutral" vs "bored"/"calm")
+export const SERIOSITIES = ["low", "medium", "high"];
 export const PRIMARY_EMOTIONS = [
-    "joy", "sadness", "anxiety", "anger",
-    "love", "guilt", "hope", "loneliness",
-    "silliness", "disappointment", "excitement",
-    "jealousy", "overwhelm", "boredom",
+    //positive
+    "joy",
+    "love",
+    "hope",
+    "excitement",
+    "serenity",
+    "creativity",
+    "lust",
+    "resilience",
+    "silliness",
+    //neutral
+    "curiosity",
+    "awe",
+    "contemplative",
+    //negative
+    "confusion",
+    "boredom",
+    "embarrassment",
+    "sadness",
+    "anxiety",
+    "anger",
+    "guilt",
+    "loneliness",
+    "disappointment",
+    "jealousy",
 ];
 // ---- Zod schemas that use the same constants
 export const IntensitySchema = z.coerce.number().int().min(1).max(5)
@@ -18,7 +36,7 @@ export const MoodSchema = z.object({
     secondary_emotions: z.array(z.string()).default([]),
     valence: z.enum(VALENCES),
     intensity: IntensitySchema,
-    energy: z.enum(ENERGIES),
+    earnestness: z.enum(SERIOSITIES),
     short_theme: z.string(),
     color_palette: z.array(z.string()).min(0).max(10).default([]),
     symbolic_elements: z.array(z.string()).min(0).max(16).default([]),
@@ -29,5 +47,5 @@ export function coercePrimaryEmotion(s) {
     const raw = String(s ?? "").toLowerCase().trim();
     if (PRIMARY_EMOTIONS.includes(raw))
         return raw;
-    return EMOTION_SYNONYMS[raw] ?? "mixed";
+    return "boredom";
 }

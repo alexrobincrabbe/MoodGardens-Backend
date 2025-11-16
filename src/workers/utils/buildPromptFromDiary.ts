@@ -27,9 +27,16 @@ export async function buildPromptFromDiary(args: {
     const style = selectStylePack(mood.valence as Valence, mood.earnestness as Seriousness);
 
     const intensityBand =
-        (mood.intensity as Intensity) <= 2 ? "low"
-            : (mood.intensity as Intensity) === 5 ? "high"
+        (mood.intensity as Intensity) <= 6 ? "low"
+            : (mood.intensity as Intensity) >= 9 ? "high"
                 : "medium";
+
+    const renormalisedIntensity = (i: number) =>
+        i <= 6 ? 1 :
+            i === 7 ? 2 :
+                i === 8 ? 3 :
+                    i === 9 ? 4 :
+                        5;
 
     const archetype = selectArchetype(
         mood.primary_emotion as PrimaryEmotion,
@@ -37,7 +44,7 @@ export async function buildPromptFromDiary(args: {
     );
 
     const camera = pick(CAMERAS);
-    const weather = selectWeather(mood.primary_emotion, mood.intensity);
+    const weather = selectWeather(mood.primary_emotion, renormalisedIntensity(mood.intensity));
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);
     const flowers = selectFlowers(mood.secondary_emotions);

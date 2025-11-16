@@ -4,6 +4,18 @@ import { gardenQueue } from "../queues/garden.queue.js";
 import { mapGardenOut, generateShareId } from "../lib/gardens.js";
 import { signJwt, setAuthCookie, clearAuthCookie, requireUser, } from "../lib/auth.js";
 import { GardenPeriod, GardenStatus } from "@prisma/client";
+import { computeDiaryDayKey } from "../utils/diaryDay.js";
+const UserPublicFields = {
+    id: true,
+    email: true,
+    displayName: true,
+    createdAt: true,
+    timezone: true,
+    dayRolloverHour: true,
+    notifyWeeklyGarden: true,
+    notifyMonthlyGarden: true,
+    notifyYearlyGarden: true,
+};
 export function createResolvers(prisma) {
     return {
         JSON: GraphQLJSON,
@@ -28,7 +40,7 @@ export function createResolvers(prisma) {
                     return null;
                 return prisma.user.findUnique({
                     where: { id: ctx.userId },
-                    select: { id: true, email: true, createdAt: true, displayName: true },
+                    select: UserPublicFields,
                 });
             },
             diaryEntry: async (_, args, ctx) => {
@@ -73,6 +85,16 @@ export function createResolvers(prisma) {
                 });
                 return gardens.map(mapGardenOut);
             },
+            currentDiaryDayKey: async (_, __, ctx) => {
+                const userId = requireUser(ctx); // or return null if you want it anonymous-safe
+                const user = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { timezone: true, dayRolloverHour: true },
+                });
+                if (!user)
+                    throw new Error("User not found");
+                return computeDiaryDayKey(user.timezone ?? "UTC", user.dayRolloverHour ?? 0);
+            },
         },
         Mutation: {
             register: async (_, args, ctx) => {
@@ -88,7 +110,7 @@ export function createResolvers(prisma) {
                         passwordHash,
                         displayName: args.displayName,
                     },
-                    select: { id: true, email: true, createdAt: true, displayName: true },
+                    select: UserPublicFields,
                 });
                 const token = signJwt({ sub: user.id });
                 setAuthCookie(ctx.res, token);
@@ -117,13 +139,6 @@ export function createResolvers(prisma) {
                 clearAuthCookie(ctx.res);
                 return true;
             },
-            createDiaryEntry: async (_, args, ctx) => {
-                const userId = requireUser(ctx);
-                const diaryEntry = await prisma.diaryEntry.create({
-                    data: { text: args.text, dayKey: args.dayKey, userId },
-                });
-                return diaryEntry;
-            },
             updateDisplayName: async (_, args, ctx) => {
                 const userId = requireUser(ctx);
                 const updated = await prisma.user.update({
@@ -133,45 +148,126 @@ export function createResolvers(prisma) {
                 });
                 return updated;
             },
+            createDiaryEntry: async (_, args, ctx) => {
+                const userId = requireUser(ctx);
+                const user = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { timezone: true, dayRolloverHour: true },
+                });
+                if (!user) {
+                    throw new Error("User not found");
+                }
+                const dayKey = computeDiaryDayKey(user.timezone ?? "UTC", user.dayRolloverHour ?? 0);
+                const diaryEntry = await prisma.diaryEntry.create({
+                    data: { text: args.text, dayKey, userId },
+                });
+                return diaryEntry;
+            },
+            updateUserSettings: async (_, args, ctx) => {
+                const userId = requireUser(ctx);
+                // Clamp rollover hour to [0, 23] just to be safe
+                const safeHour = Math.min(23, Math.max(0, Math.floor(args.dayRolloverHour)));
+                const updated = await prisma.user.update({
+                    where: { id: userId },
+                    data: {
+                        timezone: args.timezone,
+                        dayRolloverHour: safeHour,
+                    },
+                    select: UserPublicFields,
+                });
+                return updated;
+            },
             requestGenerateGarden: async (_, args, ctx) => {
                 const userId = requireUser(ctx);
-                let pending = await prisma.garden.upsert({
-                    where: {
-                        userId_period_periodKey: {
+                console.log("[requestGenerateGarden] called with:", {
+                    userId,
+                    args,
+                });
+                try {
+                    // 1) Load user settings for timezone + rollover
+                    const user = await prisma.user.findUnique({
+                        where: { id: userId },
+                        select: { timezone: true, dayRolloverHour: true },
+                    });
+                    if (!user) {
+                        console.error("[requestGenerateGarden] user not found:", { userId });
+                        throw new Error("User not found");
+                    }
+                    // 2) Decide which periodKey to actually use
+                    let periodKey;
+                    if (args.period === "DAY") {
+                        periodKey = computeDiaryDayKey(user.timezone ?? "UTC", user.dayRolloverHour ?? 0);
+                        console.log("[requestGenerateGarden] computed DAY periodKey:", periodKey);
+                    }
+                    else {
+                        if (!args.periodKey) {
+                            console.error("[requestGenerateGarden] missing periodKey for non-DAY period:", args);
+                            throw new Error("periodKey is required for non-DAY gardens");
+                        }
+                        periodKey = args.periodKey;
+                        console.log("[requestGenerateGarden] using client periodKey for", args.period, "=>", periodKey);
+                    }
+                    // 3) Use the *computed* periodKey everywhere from here on
+                    let pending = await prisma.garden.upsert({
+                        where: {
+                            userId_period_periodKey: {
+                                userId,
+                                period: args.period,
+                                periodKey,
+                            },
+                        },
+                        update: {
+                            status: GardenStatus.PENDING,
+                            imageUrl: null,
+                            summary: "Your garden is growing…",
+                            progress: 0,
+                        },
+                        create: {
                             userId,
                             period: args.period,
-                            periodKey: args.periodKey,
+                            periodKey,
+                            status: GardenStatus.PENDING,
+                            imageUrl: null,
+                            summary: "Your garden is growing…",
+                            progress: 0,
+                            shareId: generateShareId(),
                         },
-                    },
-                    update: {
-                        status: GardenStatus.PENDING,
-                        imageUrl: null,
-                        summary: "Your garden is growing…",
-                        progress: 0,
-                    },
-                    create: {
-                        userId,
-                        period: args.period,
-                        periodKey: args.periodKey,
-                        status: GardenStatus.PENDING,
-                        imageUrl: null,
-                        summary: "Your garden is growing…",
-                        progress: 0,
-                        shareId: generateShareId(),
-                    },
-                });
-                if (!pending.shareId) {
-                    pending = await prisma.garden.update({
-                        where: { id: pending.id },
-                        data: { shareId: generateShareId() },
                     });
+                    console.log("[requestGenerateGarden] upsert result (pending):", {
+                        id: pending.id,
+                        period: pending.period,
+                        periodKey: pending.periodKey,
+                        shareId: pending.shareId,
+                        status: pending.status,
+                    });
+                    if (!pending.shareId) {
+                        pending = await prisma.garden.update({
+                            where: { id: pending.id },
+                            data: { shareId: generateShareId() },
+                        });
+                        console.log("[requestGenerateGarden] assigned new shareId:", {
+                            id: pending.id,
+                            shareId: pending.shareId,
+                        });
+                    }
+                    await gardenQueue.add("generate", {
+                        gardenId: pending.id,
+                        period: args.period,
+                        periodKey,
+                    });
+                    console.log("[requestGenerateGarden] enqueued job:", {
+                        gardenId: pending.id,
+                        period: args.period,
+                        periodKey,
+                    });
+                    const result = mapGardenOut(pending);
+                    console.log("[requestGenerateGarden] returning:", result);
+                    return result;
                 }
-                await gardenQueue.add("generate", {
-                    gardenId: pending.id,
-                    period: args.period,
-                    periodKey: args.periodKey,
-                });
-                return mapGardenOut(pending);
+                catch (err) {
+                    console.error("[requestGenerateGarden] ERROR:", err);
+                    throw err;
+                }
             },
         },
     };

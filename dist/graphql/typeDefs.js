@@ -18,6 +18,11 @@ export const typeDefs = `#graphql
     email: String!
     createdAt: String!
     displayName: String!
+    timezone: String!
+    dayRolloverHour: Int!
+    notifyWeeklyGarden: Boolean!
+    notifyMonthlyGarden: Boolean!
+    notifyYearlyGarden: Boolean!
   }
 
   type DiaryEntry {
@@ -55,14 +60,16 @@ export const typeDefs = `#graphql
     paginatedDiaryEntries(limit: Int!, offset: Int!): [DiaryEntry!]!
     diaryEntry(dayKey: String!): DiaryEntry
     gardensByMonth(monthKey: String!): [Garden!]!
+    currentDiaryDayKey: String!
   }
 
   type Mutation {
     register(email: String!, password: String!, displayName: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
-    createDiaryEntry(text: String!, songUrl: String, dayKey: String!): DiaryEntry!
-    requestGenerateGarden(period: GardenPeriod!, periodKey: String!): Garden!
+    createDiaryEntry(text: String!): DiaryEntry!
+    requestGenerateGarden(period: GardenPeriod!, periodKey: String): Garden!
     updateDisplayName(displayName: String!): User!
+    updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
   }
 `;

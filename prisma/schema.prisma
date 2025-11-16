@@ -30,6 +30,13 @@ model User {
     entries      DiaryEntry[]
     gardens      Garden[]
     userKey      UserKey?
+
+    timezone        String @default("UTC")
+    dayRolloverHour Int    @default(0)
+
+    notifyWeeklyGarden  Boolean @default(true)
+    notifyMonthlyGarden Boolean @default(true)
+    notifyYearlyGarden  Boolean @default(true)
 }
 
 model DiaryEntry {

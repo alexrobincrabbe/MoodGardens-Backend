@@ -15,12 +15,17 @@ export async function buildPromptFromDiary(args) {
     const mood = await analyseDiaryMood(openai, userText);
     console.log("[buildPromptFromDiary] mood analysis result:", JSON.stringify(mood, null, 2));
     const style = selectStylePack(mood.valence, mood.earnestness);
-    const intensityBand = mood.intensity <= 2 ? "low"
-        : mood.intensity === 5 ? "high"
+    const intensityBand = mood.intensity <= 6 ? "low"
+        : mood.intensity >= 9 ? "high"
             : "medium";
+    const renormalisedIntensity = (i) => i <= 6 ? 1 :
+        i === 7 ? 2 :
+            i === 8 ? 3 :
+                i === 9 ? 4 :
+                    5;
     const archetype = selectArchetype(mood.primary_emotion, intensityBand);
     const camera = pick(CAMERAS);
-    const weather = selectWeather(mood.primary_emotion, mood.intensity);
+    const weather = selectWeather(mood.primary_emotion, renormalisedIntensity(mood.intensity));
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);
     const flowers = selectFlowers(mood.secondary_emotions);

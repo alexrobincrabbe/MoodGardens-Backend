@@ -179,10 +179,6 @@ export function createResolvers(prisma) {
             },
             requestGenerateGarden: async (_, args, ctx) => {
                 const userId = requireUser(ctx);
-                console.log("[requestGenerateGarden] called with:", {
-                    userId,
-                    args,
-                });
                 try {
                     // 1) Load user settings for timezone + rollover
                     const user = await prisma.user.findUnique({
@@ -205,7 +201,6 @@ export function createResolvers(prisma) {
                             throw new Error("periodKey is required for non-DAY gardens");
                         }
                         periodKey = args.periodKey;
-                        console.log("[requestGenerateGarden] using client periodKey for", args.period, "=>", periodKey);
                     }
                     // 3) Use the *computed* periodKey everywhere from here on
                     let pending = await prisma.garden.upsert({
@@ -233,21 +228,10 @@ export function createResolvers(prisma) {
                             shareId: generateShareId(),
                         },
                     });
-                    console.log("[requestGenerateGarden] upsert result (pending):", {
-                        id: pending.id,
-                        period: pending.period,
-                        periodKey: pending.periodKey,
-                        shareId: pending.shareId,
-                        status: pending.status,
-                    });
                     if (!pending.shareId) {
                         pending = await prisma.garden.update({
                             where: { id: pending.id },
                             data: { shareId: generateShareId() },
-                        });
-                        console.log("[requestGenerateGarden] assigned new shareId:", {
-                            id: pending.id,
-                            shareId: pending.shareId,
                         });
                     }
                     await gardenQueue.add("generate", {
@@ -255,13 +239,7 @@ export function createResolvers(prisma) {
                         period: args.period,
                         periodKey,
                     });
-                    console.log("[requestGenerateGarden] enqueued job:", {
-                        gardenId: pending.id,
-                        period: args.period,
-                        periodKey,
-                    });
                     const result = mapGardenOut(pending);
-                    console.log("[requestGenerateGarden] returning:", result);
                     return result;
                 }
                 catch (err) {

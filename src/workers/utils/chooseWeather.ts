@@ -1,4 +1,4 @@
-import { type PrimaryEmotion, Intensity } from "./mood.types.js";
+import { type PrimaryEmotion, NormalisedIntensity } from "./mood.types.js";
 
 const WEATHERS = {
     // joy
@@ -134,7 +134,7 @@ const WEATHERS = {
 
 type Weather = (typeof WEATHERS)[keyof typeof WEATHERS];
 
-const WEATHER_MATRIX: Record<PrimaryEmotion, Record<Intensity, Weather>> = {
+const WEATHER_MATRIX: Record<PrimaryEmotion, Record<NormalisedIntensity, Weather>> = {
     joy: {
         1: WEATHERS.FLUFFY_CLOUDS,
         2: WEATHERS.CLEAR_SKY,
@@ -324,6 +324,6 @@ const WEATHER_MATRIX: Record<PrimaryEmotion, Record<Intensity, Weather>> = {
 // ─── Selector ─────────────────────────────────────────────────────────────
 export function selectWeather(primary: string, intensity: number): Weather {
     const p = primary.toLowerCase().trim() as PrimaryEmotion;
-    const i = (Math.min(5, Math.max(1, Math.round(intensity))) || 3) as Intensity;
+    const i = (Math.min(5, Math.max(1, Math.round(intensity))) || 3) as NormalisedIntensity;
     return WEATHER_MATRIX[p]?.[i] ?? WEATHERS.CLEAR_SKY;
 }

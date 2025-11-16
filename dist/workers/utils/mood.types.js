@@ -29,8 +29,8 @@ export const PRIMARY_EMOTIONS = [
     "jealousy",
 ];
 // ---- Zod schemas that use the same constants
-export const IntensitySchema = z.coerce.number().int().min(1).max(5)
-    .transform(n => Math.min(5, Math.max(1, n)));
+export const IntensitySchema = z.coerce.number().int().min(1).max(10)
+    .transform(n => Math.min(10, Math.max(1, n)));
 export const MoodSchema = z.object({
     primary_emotion: z.enum(PRIMARY_EMOTIONS),
     secondary_emotions: z.array(z.string()).default([]),

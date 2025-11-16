@@ -37,7 +37,7 @@ export type Valence = typeof VALENCES[number];
 export type Seriousness = typeof SERIOSITIES[number];
 export type PrimaryEmotion = typeof PRIMARY_EMOTIONS[number];
 export type Intensity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-
+export type NormalisedIntensity = 1 | 2 | 3 | 4 | 5;
 // ---- Zod schemas that use the same constants
 export const IntensitySchema = z.coerce.number().int().min(1).max(10)
     .transform(n => (Math.min(10, Math.max(1, n)) as Intensity));

@@ -32,10 +32,17 @@ export async function buildPromptFromDiary(args: {
                 : "medium";
 
     const renormalisedIntensity = (i: number) =>
-        i <= 6 ? 1 :
-            i === 7 ? 2 :
-                i === 8 ? 3 :
-                    i === 9 ? 4 :
+        i <= 4 ? 1 :
+            5 <= i && i <= 6 ? 2 :
+                i === 6 ? 3 :
+                    7 <= i && i <= 8 ? 4 :
+                        5;
+
+    const renormalisedBoredomIntensity = (i: number) =>
+        i <= 2 ? 1 :
+            3 <= i && i <= 4 ? 2 :
+                5 <= i && i <= 6 ? 3 :
+                    i === 7 ? 4 :
                         5;
 
     const archetype = selectArchetype(
@@ -44,7 +51,11 @@ export async function buildPromptFromDiary(args: {
     );
 
     const camera = pick(CAMERAS);
-    const weather = selectWeather(mood.primary_emotion, renormalisedIntensity(mood.intensity));
+    let adjustedIntensity
+    mood.primary_emotion === "boredom"
+        ? adjustedIntensity = renormalisedBoredomIntensity(mood.intensity)
+        : adjustedIntensity = renormalisedIntensity(mood.intensity)
+    const weather = selectWeather(mood.primary_emotion, adjustedIntensity);
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);
     const flowers = selectFlowers(mood.secondary_emotions);

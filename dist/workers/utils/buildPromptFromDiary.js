@@ -18,14 +18,23 @@ export async function buildPromptFromDiary(args) {
     const intensityBand = mood.intensity <= 6 ? "low"
         : mood.intensity >= 9 ? "high"
             : "medium";
-    const renormalisedIntensity = (i) => i <= 6 ? 1 :
-        i === 7 ? 2 :
-            i === 8 ? 3 :
-                i === 9 ? 4 :
+    const renormalisedIntensity = (i) => i <= 4 ? 1 :
+        5 <= i && i <= 6 ? 2 :
+            i === 6 ? 3 :
+                7 <= i && i <= 8 ? 4 :
+                    5;
+    const renormalisedBoredomIntensity = (i) => i <= 2 ? 1 :
+        3 <= i && i <= 4 ? 2 :
+            5 <= i && i <= 6 ? 3 :
+                i === 7 ? 4 :
                     5;
     const archetype = selectArchetype(mood.primary_emotion, intensityBand);
     const camera = pick(CAMERAS);
-    const weather = selectWeather(mood.primary_emotion, renormalisedIntensity(mood.intensity));
+    let adjustedIntensity;
+    mood.primary_emotion === "boredom"
+        ? adjustedIntensity = renormalisedBoredomIntensity(mood.intensity)
+        : adjustedIntensity = renormalisedIntensity(mood.intensity);
+    const weather = selectWeather(mood.primary_emotion, adjustedIntensity);
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);
     const flowers = selectFlowers(mood.secondary_emotions);

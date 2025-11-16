@@ -1,7 +1,7 @@
 // buildPromptFromDiary.ts
 import type OpenAI from "openai";
 import { analyseDiaryMood } from "./analyseDiaryMood.js";
-import { type MoodAnalysis, type Valence, type Seriousness, type PrimaryEmotion, type Intensity } from "./mood.types.js";
+import { type MoodAnalysis, type Valence, type Seriousness, type PrimaryEmotion, type Intensity, NormalisedIntensity } from "./mood.types.js";
 import { selectStylePack } from "./chooseStyle.js";
 import { selectArchetype } from "./chooseArchitype.js";
 import { selectWeather } from "./chooseWeather.js";
@@ -26,10 +26,7 @@ export async function buildPromptFromDiary(args: {
     console.log("[buildPromptFromDiary] mood analysis result:", JSON.stringify(mood, null, 2));
     const style = selectStylePack(mood.valence as Valence, mood.earnestness as Seriousness);
 
-    const intensityBand =
-        (mood.intensity as Intensity) <= 6 ? "low"
-            : (mood.intensity as Intensity) >= 9 ? "high"
-                : "medium";
+
 
     const renormalisedIntensity = (i: number) =>
         i <= 4 ? 1 :
@@ -45,16 +42,23 @@ export async function buildPromptFromDiary(args: {
                     i === 7 ? 4 :
                         5;
 
-    const archetype = selectArchetype(
-        mood.primary_emotion as PrimaryEmotion,
-        intensityBand
-    );
+
 
     const camera = pick(CAMERAS);
     let adjustedIntensity
     mood.primary_emotion === "boredom"
         ? adjustedIntensity = renormalisedBoredomIntensity(mood.intensity)
         : adjustedIntensity = renormalisedIntensity(mood.intensity)
+
+    const intensityBand =
+        (adjustedIntensity as NormalisedIntensity) <= 2 ? "low"
+            : (adjustedIntensity as NormalisedIntensity) >= 5 ? "high"
+                : "medium";
+
+    const archetype = selectArchetype(
+        mood.primary_emotion as PrimaryEmotion,
+        intensityBand
+    );
     const weather = selectWeather(mood.primary_emotion, adjustedIntensity);
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);

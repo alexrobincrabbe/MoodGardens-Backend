@@ -36,11 +36,11 @@ export const PRIMARY_EMOTIONS = [
 export type Valence = typeof VALENCES[number];
 export type Seriousness = typeof SERIOSITIES[number];
 export type PrimaryEmotion = typeof PRIMARY_EMOTIONS[number];
-export type Intensity = 1 | 2 | 3 | 4 | 5;
+export type Intensity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 // ---- Zod schemas that use the same constants
-export const IntensitySchema = z.coerce.number().int().min(1).max(5)
-    .transform(n => (Math.min(5, Math.max(1, n)) as Intensity));
+export const IntensitySchema = z.coerce.number().int().min(1).max(10)
+    .transform(n => (Math.min(10, Math.max(1, n)) as Intensity));
 
 export const MoodSchema = z.object({
     primary_emotion: z.enum(PRIMARY_EMOTIONS),

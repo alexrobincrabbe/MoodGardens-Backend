@@ -24,13 +24,14 @@ enum GardenStatus {
 model User {
     id           String       @id @default(uuid())
     email        String       @unique
-    passwordHash String
+    passwordHash String?
     createdAt    DateTime     @default(now())
     displayName  String       @default("Anonymous")
     entries      DiaryEntry[]
     gardens      Garden[]
     userKey      UserKey?
-
+    googleId     String?  @unique // Google "sub" claim (user id)
+  // facebookId  String?  @unique  // later
     timezone        String @default("UTC")
     dayRolloverHour Int    @default(0)
 

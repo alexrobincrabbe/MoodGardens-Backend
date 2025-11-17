@@ -44,8 +44,8 @@ const STYLE_CATALOG: Record<StyleId, StylePack> = {
 
 const STYLE_MATRIX: Record<Valence, Record<Seriousness, StyleId[]>> = {
     positive: {
-        low: ["flat_vector", "contemporary_art_deco", "pointilism"],
-        medium: ["ghibli_like", "watercolor_soft", "crayon"],
+        low: ["flat_vector", "contemporary_art_deco", "crayon"],
+        medium: ["ghibli_like", "watercolor_soft", "pointilism"],
         high: ["vaporwave", "post_impressionism", "renaissance"],
     },
     mixed: {

@@ -3,7 +3,7 @@ import { selectStylePack } from "./chooseStyle.js";
 import { selectArchetype } from "./chooseArchitype.js";
 import { selectWeather } from "./chooseWeather.js";
 import { selectTree } from "./chooseTree.js";
-import { selectFlowers } from "./chooseFlower.js";
+import { selectCreatures, selectFlowers } from "./chooseFlower.js";
 const CAMERAS = [
     "wide bird’s-eye view", "isometric view", "eye-level view",
     "low angle looking up through foliage", "close-up of a small section of the garden",
@@ -38,10 +38,7 @@ export async function buildPromptFromDiary(args) {
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
     const tree = selectTree(mood.primary_emotion);
     const flowers = selectFlowers(mood.secondary_emotions);
-    const combinedSymbols = [
-        ...mood.symbolic_elements,
-        ...flowers,
-    ];
+    const creatures = selectCreatures(mood.secondary_emotions);
     const treeLine = tree === "ivy"
         ? "Trailing ivy winds through the garden."
         : `Include this type of tree in the garden: ${tree}.`;
@@ -57,11 +54,9 @@ export async function buildPromptFromDiary(args) {
         ${mood.color_palette.join(", ")}
 
         ${treeLine}
-        include these flowers: 
-        ${flowers.join(", ")}
-
-        Include these symbolic elements:
-        ${mood.symbolic_elements.join(", ")}.
+        include these flowers: ${flowers.join(", ")}
+        include these creatures: ${creatures.join(", ")}
+        Include these symbolic elements:${mood.symbolic_elements.join(", ")}.
 
         Allow surreal / whimsical combinations.
         No people, no text or letters, no frames or borders.

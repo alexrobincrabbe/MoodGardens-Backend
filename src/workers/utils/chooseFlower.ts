@@ -1,4 +1,3 @@
-
 // ───────────────────────────────────────────────
 // 1. Canonical flower list
 // ───────────────────────────────────────────────
@@ -61,18 +60,47 @@ export const FLOWERS = {
     BABYS_BREATH: "baby's breath flowers",
     HIBISCUSES: "hibiscuses",
     AECHMEA_FASCIATAS: "aechmea fasciatas",
-
-
-
 } as const;
 
-export type Flower = (typeof FLOWERS)[keyof typeof FLOWERS]; // or reuse FlowerType if you prefer
 
-// ───────────────────────────────────────────────
-// 2. Full emotion → flower mapping
-//    Includes all primary emotions + many secondaries
-//    All keys are lowercase emotion names.
-// ───────────────────────────────────────────────
+export const CREATURES = {
+    BEETLES: "beetles",
+    CICADAS: "cicadas",
+    GLOWING_EYES: "glowing eyes",
+    MOLE: "mole",
+    HORNETS: "hornets",
+    SPIDER: "spider",
+    PARROTS: "parrots",
+    SALAMANDER: "salamander",
+    BUTTERFLIES: "butterflies",
+    MOTHS: "moths",
+    DRAGONFLIES: "dragonflies",
+    HUMMINGBIRDS: "hummingbirds",
+    HEDGEHOGS: "hedgehogs",
+    OWL: "owl",
+    FROGS: "frogs",
+    KOI: "koi",
+    WHITE_PARROT: "white parrot",
+    DOVES: "doves",
+    CROWS: "crows",
+    FIREFLIES: "fireflies",
+    RAVEN: "raven",
+    PEACOCK: "peacock",
+    BEES: "bees",
+    ROBINS: "robins",
+    WORMS: "worms",
+    ANTS: "ants",
+    GRASSHOPPER: "grasshopper",
+    DEATHWATCH_BEETLE: "deathwatch beetle",
+    RAVENS: "ravens",
+    SPIDERS: "spiders",
+    HEDGEHOG: "hedgehog",
+
+} as const
+
+export type Flower = (typeof FLOWERS)[keyof typeof FLOWERS];
+export type Creature = (typeof CREATURES)[keyof typeof CREATURES];
+
 export const FLOWERS_MATRIX: Record<string, Flower> = {
     // Positive
     joy: FLOWERS.WISTERIA,
@@ -84,13 +112,10 @@ export const FLOWERS_MATRIX: Record<string, Flower> = {
     lust: FLOWERS.BLEEDING_HEART,
     resilience: FLOWERS.SNAPDRAGON,
     silliness: FLOWERS.MIXED_ALLIUMS,
-
-
     // Neutral
     curiosity: FLOWERS.BLUE_PUYA,
     awe: FLOWERS.PROTEA_PINWHEEL,
     contemplative: FLOWERS.LOTUS,
-
     // Negative
     confusion: FLOWERS.BULBOPHYLLUM_MEDUSAE,
     boredom: FLOWERS.BURDOCK,
@@ -102,12 +127,9 @@ export const FLOWERS_MATRIX: Record<string, Flower> = {
     loneliness: FLOWERS.IRIS,
     disappointment: FLOWERS.LILY,
     jealousy: FLOWERS.DAHLIA,
-
-
     // ─────────────────────────────
-    // SECONDARY EMOTIONS (unchanged)
+    // SECONDARY EMOTIONS
     // ─────────────────────────────
-
     nostalgia: FLOWERS.FORGETMENOTS,
     relief: FLOWERS.DAISIES,
     calm: FLOWERS.LAVENDER,
@@ -149,6 +171,77 @@ export const FLOWERS_MATRIX: Record<string, Flower> = {
     confidence: FLOWERS.AECHMEA_FASCIATAS
 };
 
+const CREATURES_MATRIX: Record<string, Creature> = {
+    // Positive
+    joy: CREATURES.BUTTERFLIES,
+    love: CREATURES.HUMMINGBIRDS,
+    hope: CREATURES.CICADAS,
+    excitement: CREATURES.DRAGONFLIES,
+    serenity: CREATURES.DOVES,
+    creativity: CREATURES.DRAGONFLIES,
+    lust: CREATURES.PEACOCK,
+    resilience: CREATURES.ANTS,
+    silliness: CREATURES.PARROTS,
+    // Neutral
+    curiosity: CREATURES.GRASSHOPPER,
+    awe: CREATURES.FIREFLIES,
+    contemplative: CREATURES.KOI,
+    // Negative
+    confusion: CREATURES.FROGS,
+    boredom: CREATURES.MOTHS,
+    embarrassment: CREATURES.MOLE,
+    sadness: CREATURES.RAVEN,
+    anxiety: CREATURES.DEATHWATCH_BEETLE,
+    anger: CREATURES.HORNETS,
+    guilt: CREATURES.OWL,
+    loneliness: CREATURES.WORMS,
+    disappointment: CREATURES.WORMS,
+    jealousy: CREATURES.SPIDER,
+    // ─────────────────────────────
+    // SECONDARY EMOTIONS
+    // ─────────────────────────────
+    nostalgia: CREATURES.RAVENS,
+    relief: CREATURES.DOVES,
+    calm: CREATURES.KOI,
+    contentment: CREATURES.BUTTERFLIES,
+    pride: CREATURES.FROGS,
+    gratitude: CREATURES.HUMMINGBIRDS,
+    affection: CREATURES.BUTTERFLIES,
+    tenderness: CREATURES.HUMMINGBIRDS,
+    longing: CREATURES.CICADAS,
+    melancholy: CREATURES.RAVEN,
+    regret: CREATURES.RAVENS,
+    frustration: CREATURES.WORMS,
+    resentment: CREATURES.HORNETS,
+    irritation: CREATURES.BEES,
+    shame: CREATURES.WORMS,
+    uncertainty: CREATURES.HEDGEHOG,
+    insecurity: CREATURES.MOLE,
+    fear: CREATURES.GLOWING_EYES,
+    worry: CREATURES.MOLE,
+    stress: CREATURES.WORMS,
+    tension: CREATURES.DEATHWATCH_BEETLE,
+    restlessness: CREATURES.HUMMINGBIRDS,
+    anticipation: CREATURES.BEETLES,
+    surprise: CREATURES.PARROTS,
+    inspiration: CREATURES.DRAGONFLIES,
+    motivation: CREATURES.BEES,
+    determination: CREATURES.ANTS,
+    discouragement: CREATURES.SPIDERS,
+    emptiness: CREATURES.MOTHS,
+    peacefulness: CREATURES.KOI,
+    comfort: CREATURES.HEDGEHOG,
+    warmth: CREATURES.SALAMANDER,
+    admiration: CREATURES.FIREFLIES,
+    compassion: CREATURES.WHITE_PARROT,
+    sympathy: CREATURES.ROBINS,
+    isolation: CREATURES.GRASSHOPPER,
+    affirmation: CREATURES.DOVES,
+    validation: CREATURES.OWL,
+    confidence: CREATURES.PEACOCK,
+    BEETLES: "beetles",
+}
+
 // ───────────────────────────────────────────────
 // 3. Selector: from secondary_emotions → Flower[]
 // ───────────────────────────────────────────────
@@ -156,5 +249,12 @@ export function selectFlowers(secondaries: string[]): Flower[] {
     return secondaries
         .map((s) => s.toLowerCase().trim())
         .map((s) => FLOWERS_MATRIX[s])
-        .filter((f): f is Flower => !!f); // strip unknown emotions
+        .filter((f): f is Flower => !!f);
+}
+
+export function selectCreatures(secondaries: string[]): Creature[] {
+    return secondaries
+        .map((s) => s.toLowerCase().trim())
+        .map((s) => CREATURES_MATRIX[s])
+        .filter((f): f is Creature => !!f);
 }

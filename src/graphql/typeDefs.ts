@@ -1,4 +1,7 @@
 // apps/api/src/graphql/typeDefs.ts
+
+
+
 export const typeDefs = `#graphql
   scalar JSON
 
@@ -24,6 +27,11 @@ export const typeDefs = `#graphql
     notifyMonthlyGarden: Boolean!
     notifyYearlyGarden: Boolean!
   }
+
+  type AuthPayload {
+  token: String!
+  user: User!
+}
 
   type DiaryEntry {
     id: ID!
@@ -71,5 +79,9 @@ export const typeDefs = `#graphql
     requestGenerateGarden(period: GardenPeriod!, periodKey: String): Garden!
     updateDisplayName(displayName: String!): User!
     updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
+    updateUserProfile(email: String!, displayName: String!): User!
+    changePassword(currentPassword: String!, newPassword: String!): Boolean!
+    requestPasswordReset(email: String!): Boolean!
+    loginWithGoogle(idToken: String!): AuthPayload!
   }
 `;

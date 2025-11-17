@@ -9,8 +9,38 @@ import {
     requireUser,
     type Context,
 } from "../lib/auth.js";
-import { PrismaClient, GardenPeriod, GardenStatus } from "@prisma/client";
+import { PrismaClient, Prisma, GardenPeriod, GardenStatus } from "@prisma/client";
 import { computeDiaryDayKey } from "../utils/diaryDay.js";
+import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken"; // or whatever you’re using
+import { GraphQLError } from "graphql";
+
+const prisma = new PrismaClient();
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
+const JWT_SECRET = process.env.JWT_SECRET!; // your existing secret
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+async function verifyGoogleIdToken(idToken: string) {
+    const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub || !payload.email) {
+        throw new GraphQLError("Could not verify Google account.", {
+            extensions: { code: "UNAUTHENTICATED" },
+        });
+    }
+
+    return {
+        googleId: payload.sub,
+        email: payload.email.toLowerCase(),
+        displayName: payload.name ?? payload.email.split("@")[0],
+    };
+}
+
 
 type GardenArgs = { period: GardenPeriod; periodKey: string };
 type CreateDiaryEntryArgs = { text: string };
@@ -22,6 +52,11 @@ type UpdateUserSettingsArgs = {
     timezone: string;
     dayRolloverHour: number;
 };
+
+type UpdateProfileArgs = {
+    email: string;
+    displayName: string;
+}
 
 const UserPublicFields = {
     id: true,
@@ -160,21 +195,86 @@ export function createResolvers(prisma: PrismaClient) {
             login: async (_: unknown, args: LoginArgs, ctx: Context) => {
                 const u = await prisma.user.findUnique({
                     where: { email: args.email },
+                    select: {
+                        id: true,
+                        email: true,
+                        createdAt: true,
+                        displayName: true,
+                        passwordHash: true,
+                    },
                 });
-                if (!u) throw new Error("Invalid credentials");
+
+                if (!u || !u.passwordHash) {
+                    throw new GraphQLError("Invalid credentials", {
+                        extensions: { code: "UNAUTHENTICATED" },
+                    });
+                }
 
                 const ok = await bcrypt.compare(args.password, u.passwordHash);
-                if (!ok) throw new Error("Invalid credentials");
+                if (!ok) {
+                    throw new GraphQLError("Invalid credentials", {
+                        extensions: { code: "UNAUTHENTICATED" },
+                    });
+                }
 
                 const user = {
                     id: u.id,
                     email: u.email,
                     createdAt: u.createdAt,
                     displayName: u.displayName,
-
                 };
+
                 const token = signJwt({ sub: user.id });
                 setAuthCookie(ctx.res, token);
+                return { user };
+            },
+
+            loginWithGoogle: async (
+                _: unknown,
+                args: { idToken: string },
+                ctx: Context
+            ) => {
+                const { idToken } = args;
+                const { googleId, email, displayName } = await verifyGoogleIdToken(idToken);
+
+                // Try to find existing user by googleId or email
+                const existingByGoogle = await prisma.user.findUnique({
+                    where: { googleId },
+                    select: UserPublicFields,
+                });
+
+                let user = existingByGoogle;
+
+                if (!user) {
+                    const existingByEmail = await prisma.user.findUnique({
+                        where: { email },
+                        select: UserPublicFields,
+                    });
+
+                    if (existingByEmail) {
+                        // Link Google to existing account
+                        user = await prisma.user.update({
+                            where: { id: existingByEmail.id },
+                            data: { googleId },
+                            select: UserPublicFields,
+                        });
+                    } else {
+                        // Create new user, no passwordHash
+                        user = await prisma.user.create({
+                            data: {
+                                email,
+                                displayName,
+                                googleId,
+                            },
+                            select: UserPublicFields,
+                        });
+                    }
+                }
+
+                // Issue the same JWT you use for normal login/register
+                const token = signJwt({ sub: user.id });
+                setAuthCookie(ctx.res, token);
+
                 return { user };
             },
 
@@ -200,7 +300,7 @@ export function createResolvers(prisma: PrismaClient) {
 
             createDiaryEntry: async (
                 _: unknown,
-                args: { text: string },
+                args: CreateDiaryEntryArgs,
                 ctx: Context,
             ) => {
                 const userId = requireUser(ctx);
@@ -247,6 +347,107 @@ export function createResolvers(prisma: PrismaClient) {
 
                 return updated;
             },
+
+            updateUserProfile: async (_: unknown, args: UpdateProfileArgs, ctx: Context) => {
+                const userId = requireUser(ctx);
+
+                const email = args.email.trim();
+                const displayName = args.displayName.trim();
+
+                if (!email) {
+                    throw new GraphQLError("Email cannot be empty.", {
+                        extensions: { code: "BAD_USER_INPUT" },
+                    });
+                }
+                if (!displayName) {
+                    throw new GraphQLError("Display name cannot be empty.", {
+                        extensions: { code: "BAD_USER_INPUT" },
+                    });
+                }
+
+                try {
+                    const updated = await prisma.user.update({
+                        where: { id: userId },
+                        data: { email, displayName },
+                        select: {
+                            id: true,
+                            email: true,
+                            displayName: true,
+                        },
+                    });
+
+                    return updated;
+                } catch (err: any) {
+                    console.error("[updateUserProfile] prisma error:", err);
+
+                    // P2002 = unique constraint violation
+                    if (err.code === "P2002") {
+                        const target = err.meta?.target;
+                        const isEmailTarget =
+                            typeof target === "string"
+                                ? target.includes("email")
+                                : Array.isArray(target) && target.includes("email");
+
+                        if (isEmailTarget) {
+                            throw new GraphQLError("That email address is already in use.", {
+                                extensions: { code: "BAD_USER_INPUT" },
+                            });
+                        }
+                    }
+
+                    throw new GraphQLError("Could not update profile.", {
+                        extensions: { code: "INTERNAL_SERVER_ERROR" },
+                    });
+                }
+            }
+
+            ,
+
+            changePassword: async (
+                _: unknown,
+                args: { currentPassword: string; newPassword: string },
+                ctx: Context
+            ) => {
+                const userId = requireUser(ctx);
+
+                const user = await prisma.user.findUnique({
+                    where: { id: userId },
+                    select: { passwordHash: true },
+                });
+
+                if (!user || !user.passwordHash) {
+                    throw new GraphQLError("User not found.", {
+                        extensions: { code: "UNAUTHENTICATED" },
+                    });
+                }
+
+                // 1. Check current password
+                const ok = await bcrypt.compare(args.currentPassword, user.passwordHash);
+                if (!ok) {
+                    throw new GraphQLError("Your current password is incorrect.", {
+                        extensions: { code: "BAD_USER_INPUT" },
+                    });
+                }
+
+                // 2. Basic strength check
+                if (args.newPassword.length < 8) {
+                    throw new GraphQLError(
+                        "New password must be at least 8 characters long.",
+                        { extensions: { code: "BAD_USER_INPUT" } }
+                    );
+                }
+
+                // 3. Hash and save new password
+                const newHash = await bcrypt.hash(args.newPassword, 12);
+
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { passwordHash: newHash },
+                });
+
+                return true;
+            }
+            ,
 
 
             requestGenerateGarden: async (_: unknown, args: GardenArgs, ctx: Context) => {

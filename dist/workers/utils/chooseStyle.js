@@ -19,8 +19,8 @@ const STYLE_CATALOG = {
 };
 const STYLE_MATRIX = {
     positive: {
-        low: ["flat_vector", "contemporary_art_deco", "pointilism"],
-        medium: ["ghibli_like", "watercolor_soft", "crayon"],
+        low: ["flat_vector", "contemporary_art_deco", "crayon"],
+        medium: ["ghibli_like", "watercolor_soft", "pointilism"],
         high: ["vaporwave", "post_impressionism", "renaissance"],
     },
     mixed: {

@@ -9,13 +9,13 @@ import {
     requireUser,
     type Context,
 } from "../lib/auth.js";
-import { PrismaClient, Prisma, GardenPeriod, GardenStatus } from "@prisma/client";
+import { PrismaClient,GardenPeriod, GardenStatus } from "@prisma/client";
+import { prisma } from "../prismaClient.js"
 import { computeDiaryDayKey } from "../utils/diaryDay.js";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken"; // or whatever you’re using
 import { GraphQLError } from "graphql";
 
-const prisma = new PrismaClient();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const JWT_SECRET = process.env.JWT_SECRET!; // your existing secret
 

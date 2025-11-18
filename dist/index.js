@@ -5,24 +5,28 @@ import cookieParser from "cookie-parser";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./prismaClient.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
 import { JWT_SECRET, PUBLIC_ORIGIN, PORT, corsOptions, } from "./config/settings.js";
-const prisma = new PrismaClient();
+import { setupAggregationJobs } from "./bootstrapAggregationJobs.js";
+import { devRouter } from "./routes/dev.routes.js";
 async function main() {
     const app = express();
-    // (optional) simple request logger for dev
+    await setupAggregationJobs();
     app.use((req, _res, next) => {
         console.log("[API]", req.method, req.url);
         next();
     });
+    // Common middleware FIRST
     app.set("trust proxy", 1);
     app.use(cors(corsOptions));
     app.options("*", cors(corsOptions));
     app.use(cookieParser());
-    app.use(express.json());
+    app.use(express.json()); // 👈 JSON parser before any routes
+    // Dev routes (now have req.body)
+    app.use("/dev", devRouter);
     // Public JSON used by the frontend /share/:id page
     mountShareMeta(app, prisma);
     const server = new ApolloServer({
@@ -47,7 +51,6 @@ async function main() {
         },
     }));
     app.get("/healthz", (_req, res) => res.send("ok"));
-    // (optional) catch-all 404 to keep misses visible in dev
     app.use((req, res) => {
         console.log("[API] 404", req.method, req.url);
         res.status(404).json({ error: "not_found", path: req.url });

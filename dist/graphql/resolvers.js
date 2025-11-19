@@ -95,6 +95,16 @@ export function createResolvers(prisma) {
                 });
                 return mapGardenOut(g);
             },
+            gardensByPeriod: async (_, args, ctx) => {
+                const userId = requireUser(ctx);
+                const gardens = await prisma.garden.findMany({
+                    where: {
+                        userId,
+                        period: args.period,
+                    }
+                });
+                return gardens.map(mapGardenOut);
+            },
             gardensByMonth: async (_, args, ctx) => {
                 const userId = requireUser(ctx);
                 const gardens = await prisma.garden.findMany({

@@ -117,3 +117,60 @@ export function getWeekRangeFromWeekKey(weekKey: string): {
     endDayKey: toDayKey(sunday),
   };
 }
+
+
+// apps/api/src/utils/periodKeys.ts
+
+// existing exports...
+// export function computePeriodKeysFromDiaryContext(...) { ... }
+// export function getPreviousWeekKey(...) { ... }
+// export function getWeekRangeFromWeekKey(...) { ... }
+
+export function getPreviousMonthKey(currentMonthKey: string): string {
+  // currentMonthKey format: "YYYY-MM"
+  const [yStr, mStr] = currentMonthKey.split("-");
+  const year = parseInt(yStr, 10);
+  const month = parseInt(mStr, 10);
+
+  if (month > 1) {
+    const prevMonth = String(month - 1).padStart(2, "0");
+    return `${year}-${prevMonth}`;
+  } else {
+    // going from January -> December of previous year
+    return `${year - 1}-12`;
+  }
+}
+
+export function getPreviousYearKey(currentYearKey: string): string {
+  // currentYearKey format: "YYYY"
+  const year = parseInt(currentYearKey, 10);
+  return String(year - 1);
+}
+
+
+export function weekBelongsToMonth(weekKey: string, monthKey: string): boolean {
+  // monthKey: "YYYY-MM"
+  const { startDayKey } = getWeekRangeFromWeekKey(weekKey);
+  // startDayKey: "YYYY-MM-DD"
+  const [yStr, mStr] = startDayKey.split("-");
+  const monthFromWeek = `${yStr}-${mStr}`;
+  return monthFromWeek === monthKey;
+}
+
+
+/**
+ * Given a dayKey like "2025-11-14", return the ISO week key "2025-W46".
+ */
+export function weekKeyFromDayKey(dayKey: string): string {
+const dt = (DateTime as any).fromISO(dayKey, { zone: "UTC" });
+  if (!dt.isValid) {
+    throw new Error(`Invalid dayKey for weekKeyFromDayKey: ${dayKey}`);
+  }
+
+  const anyDt = dt as any; // @types/luxon can be annoying about weekYear/weekNumber
+  const weekYear: number = anyDt.weekYear;
+  const weekNumber: number = anyDt.weekNumber;
+
+  const weekStr = String(weekNumber).padStart(2, "0");
+  return `${weekYear}-W${weekStr}`;
+}

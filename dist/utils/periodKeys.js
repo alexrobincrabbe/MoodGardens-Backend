@@ -1,3 +1,5 @@
+// src/utils/periodKeys.ts
+import { DateTime } from "luxon";
 import { computeDiaryDayKey } from "./diaryDay.js";
 // --- existing code you already have ---
 // (adapt import path of computeDiaryDayKey to wherever it lives)
@@ -75,4 +77,50 @@ export function getWeekRangeFromWeekKey(weekKey) {
         startDayKey: toDayKey(monday),
         endDayKey: toDayKey(sunday),
     };
+}
+// apps/api/src/utils/periodKeys.ts
+// existing exports...
+// export function computePeriodKeysFromDiaryContext(...) { ... }
+// export function getPreviousWeekKey(...) { ... }
+// export function getWeekRangeFromWeekKey(...) { ... }
+export function getPreviousMonthKey(currentMonthKey) {
+    // currentMonthKey format: "YYYY-MM"
+    const [yStr, mStr] = currentMonthKey.split("-");
+    const year = parseInt(yStr, 10);
+    const month = parseInt(mStr, 10);
+    if (month > 1) {
+        const prevMonth = String(month - 1).padStart(2, "0");
+        return `${year}-${prevMonth}`;
+    }
+    else {
+        // going from January -> December of previous year
+        return `${year - 1}-12`;
+    }
+}
+export function getPreviousYearKey(currentYearKey) {
+    // currentYearKey format: "YYYY"
+    const year = parseInt(currentYearKey, 10);
+    return String(year - 1);
+}
+export function weekBelongsToMonth(weekKey, monthKey) {
+    // monthKey: "YYYY-MM"
+    const { startDayKey } = getWeekRangeFromWeekKey(weekKey);
+    // startDayKey: "YYYY-MM-DD"
+    const [yStr, mStr] = startDayKey.split("-");
+    const monthFromWeek = `${yStr}-${mStr}`;
+    return monthFromWeek === monthKey;
+}
+/**
+ * Given a dayKey like "2025-11-14", return the ISO week key "2025-W46".
+ */
+export function weekKeyFromDayKey(dayKey) {
+    const dt = DateTime.fromISO(dayKey, { zone: "UTC" });
+    if (!dt.isValid) {
+        throw new Error(`Invalid dayKey for weekKeyFromDayKey: ${dayKey}`);
+    }
+    const anyDt = dt; // @types/luxon can be annoying about weekYear/weekNumber
+    const weekYear = anyDt.weekYear;
+    const weekNumber = anyDt.weekNumber;
+    const weekStr = String(weekNumber).padStart(2, "0");
+    return `${weekYear}-W${weekStr}`;
 }

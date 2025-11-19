@@ -68,6 +68,7 @@ export const typeDefs = `#graphql
     paginatedDiaryEntries(limit: Int!, offset: Int!): [DiaryEntry!]!
     diaryEntry(dayKey: String!): DiaryEntry
     gardensByMonth(monthKey: String!): [Garden!]!
+    gardensByPeriod(period: GardenPeriod!):[Garden!]!
     currentDiaryDayKey: String!
   }
 

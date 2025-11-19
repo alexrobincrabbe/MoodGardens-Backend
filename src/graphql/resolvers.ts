@@ -43,6 +43,7 @@ async function verifyGoogleIdToken(idToken: string) {
 
 
 type GardenArgs = { period: GardenPeriod; periodKey: string };
+type GardenPeriodArgs = {period: GardenPeriod;}
 type CreateDiaryEntryArgs = { text: string };
 type RegisterArgs = { email: string; displayName: string; password: string };
 type LoginArgs = { email: string; password: string };
@@ -135,6 +136,17 @@ export function createResolvers(prisma: PrismaClient) {
                     },
                 });
                 return mapGardenOut(g);
+            },
+
+            gardensByPeriod: async (_: unknown, args: GardenPeriodArgs, ctx: Context) => {
+                const userId = requireUser(ctx);
+                const gardens = await prisma.garden.findMany({
+                    where: {
+                        userId,
+                        period: args.period,
+                    }
+                })
+                return gardens.map(mapGardenOut)
             },
 
             gardensByMonth: async (

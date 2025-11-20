@@ -1,14 +1,14 @@
 // src/services/weeklyAggregation.ts
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../../prismaClient.js";
 import {
     computePeriodKeysFromDiaryContext,
     getPreviousWeekKey,
     getWeekRangeFromWeekKey,
      weekKeyFromDayKey,
-} from "../utils/periodKeys.js";
-import { gardenQueue, gardenJobOpts } from "../queues/garden.queue.js";
+} from "../../utils/periodKeys.js";
+import { gardenQueue, gardenJobOpts } from "../../queues/garden.queue.js";
 import { summariseWeek } from "./summariseWeek.js";
-import { generateShareId } from "../lib/gardens.js";
+import { generateShareId } from "../../lib/gardens.js";
 
 
 const MIN_ENTRIES_PER_WEEK = 5;

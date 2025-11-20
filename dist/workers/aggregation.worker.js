@@ -1,7 +1,7 @@
 // src/workers/aggregation.worker.ts
 import { Worker } from "bullmq";
 import { redis } from "../redis.js";
-import { runAggregations } from "../services/aggregation.js";
+import { runAggregations } from "../modules/aggregation/aggregation.js";
 const worker = new Worker("aggregation", async (job) => {
     if (job.name === "run-aggregations") {
         await runAggregations();

@@ -1,13 +1,13 @@
 // apps/api/src/services/monthlyAggregation.ts
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../../prismaClient.js";
 import {
   computePeriodKeysFromDiaryContext,
   getPreviousMonthKey,
   weekBelongsToMonth,
-} from "../utils/periodKeys.js";
-import { gardenQueue, gardenJobOpts } from "../queues/garden.queue.js";
+} from "../../utils/periodKeys.js";
+import { gardenQueue, gardenJobOpts } from "../../queues/garden.queue.js";
 import { summariseMonthFromWeeks } from "./periodSummaries.js";
-import { generateShareId } from "../lib/gardens.js";
+import { generateShareId } from "../../lib/gardens.js";
 
 const MIN_WEEKLY_GARDENS_PER_MONTH = 3;
 

@@ -1,7 +1,3 @@
-// apps/api/src/graphql/typeDefs.ts
-
-
-
 export const typeDefs = `#graphql
   scalar JSON
 
@@ -78,7 +74,6 @@ export const typeDefs = `#graphql
     logout: Boolean!
     createDiaryEntry(text: String!): DiaryEntry!
     requestGenerateGarden(period: GardenPeriod!, periodKey: String): Garden!
-    updateDisplayName(displayName: String!): User!
     updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
     updateUserProfile(email: String!, displayName: String!): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!

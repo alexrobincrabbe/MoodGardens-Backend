@@ -1,2 +1,2 @@
-export * from "./auth"
-export * from "./verify-google-auth-token"
+export * from "./auth.js"
+export * from "./verify-google-auth-token.js"

@@ -60,22 +60,30 @@ model DiaryEntry {
 }
 
 model Garden {
-    id        String       @id @default(uuid())
-    period    GardenPeriod @default(DAY)
-    periodKey String
-    status    GardenStatus @default(READY)
-    imageUrl  String?
-    publicId  String?      @db.VarChar(512)
-    summary   String?
-    progress  Int          @default(0)
-    createdAt DateTime     @default(now())
-    updatedAt DateTime     @updatedAt
-    shareId   String?      @unique
-    userId    String
-    user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id        String       @id @default(uuid())
+  period    GardenPeriod @default(DAY)
+  periodKey String
+  status    GardenStatus @default(READY)
+  imageUrl  String?
+  publicId  String?      @db.VarChar(512)
 
-    @@unique([userId, period, periodKey])
+  // NEW: encrypted summary support
+  summary             String?
+  summaryIv           Bytes?
+  summaryAuthTag      Bytes?
+  summaryCiphertext   Bytes?
+  summaryKeyVersion   Int?     @default(1)
+
+  progress  Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  shareId   String?      @unique
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, period, periodKey])
 }
+
 
 model UserKey {
     id        String   @id @default(uuid())

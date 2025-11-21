@@ -1,5 +1,5 @@
 // apps/api/src/redis.ts
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 // Prefer Heroku Redis Cloud var, then REDIS_URL, then local dev
 const url = process.env.REDISCLOUD_URL ||
     process.env.REDIS_URL ||
@@ -14,4 +14,4 @@ const opts = {
     // Optional niceties:
     // connectionName: "mood-gardens",
 };
-export const redis = new IORedis(url, opts);
+export const redis = new Redis(url, opts);

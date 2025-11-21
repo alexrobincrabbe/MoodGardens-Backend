@@ -6,8 +6,11 @@ import {
   weekBelongsToMonth,
 } from "../../utils/periodKeys.js";
 import { gardenQueue, gardenJobOpts } from "../../queues/garden.queue.js";
-import { summariseMonthFromWeeks } from "./periodSummaries.js";
+import {
+  summariseMonthFromWeeklyGardens,
+} from "./periodSummaries.js";
 import { generateShareId } from "../../lib/gardens.js";
+import { encryptTextForUser } from "../../crypto/diaryEncryption.js";
 
 const MIN_WEEKLY_GARDENS_PER_MONTH = 3;
 
@@ -30,7 +33,7 @@ export async function createMonthlyGardenIfNeeded(user: UserLike) {
   console.log("[MONTHLY]", userId, "currentMonthKey:", currentMonthKey);
   console.log("[MONTHLY]", userId, "lastCompletedMonthKey:", lastCompletedMonthKey);
 
-  // Has MONTH garden already been created?
+  // Check if MONTH garden already exists
   const existing = await prisma.garden.findUnique({
     where: {
       userId_period_periodKey: {
@@ -52,26 +55,23 @@ export async function createMonthlyGardenIfNeeded(user: UserLike) {
 
   // Fetch all WEEK gardens for this user
   const weeklyGardens = await prisma.garden.findMany({
-    where: {
-      userId,
-      period: "WEEK",
-    },
+    where: { userId, period: "WEEK" },
     orderBy: { periodKey: "asc" },
+    select: {
+      periodKey: true,
+      summary: true,
+      summaryIv: true,
+      summaryAuthTag: true,
+      summaryCiphertext: true,
+    },
   });
 
-  // Filter those that belong to lastCompletedMonthKey
+  // Filter for the ones belonging to the completed month
   const weeklyInMonth = weeklyGardens.filter((g) =>
     weekBelongsToMonth(g.periodKey, lastCompletedMonthKey)
   );
 
-  console.log(
-    "[MONTHLY]",
-    userId,
-    "weekly gardens in month",
-    lastCompletedMonthKey,
-    "count:",
-    weeklyInMonth.length
-  );
+  console.log("[MONTHLY]", userId, "weekly gardens in month", lastCompletedMonthKey, "count:", weeklyInMonth.length);
 
   if (weeklyInMonth.length < MIN_WEEKLY_GARDENS_PER_MONTH) {
     console.log(
@@ -87,26 +87,36 @@ export async function createMonthlyGardenIfNeeded(user: UserLike) {
     return;
   }
 
-  const weeklySummaries = weeklyInMonth
-    .map((g) => g.summary?.trim())
-    .filter((s): s is string => !!s && s.length > 0);
+  // --- 🔐 Decrypt weekly summaries ---
+  console.log("[MONTHLY]", userId, "decrypting weekly summaries…");
+  const monthSummary = await summariseMonthFromWeeklyGardens(
+    prisma,
+    userId,
+    weeklyInMonth
+  );
 
-  if (!weeklySummaries.length) {
-    console.log("[MONTHLY]", userId, "no weekly summaries to summarise – aborting");
-    return;
-  }
+  console.log("[MONTHLY]", userId, "month summary:", monthSummary);
 
-  console.log("[MONTHLY]", userId, "summarising month…");
-  const summary = await summariseMonthFromWeeks(weeklySummaries);
-  console.log("[MONTHLY]", userId, "month summary:", summary);
+  // --- 🔐 Encrypt month summary for storage ---
+  const encryptedSummary = await encryptTextForUser(prisma, userId, monthSummary);
 
+  // Create MONTH garden
   const monthGarden = await prisma.garden.create({
     data: {
       userId,
       period: "MONTH",
       periodKey: lastCompletedMonthKey,
       status: "PENDING",
-      summary,
+
+      // keep plaintext for now, like daily + weekly
+      summary: monthSummary,
+
+      // encrypted payload
+      summaryIv: encryptedSummary.iv,
+      summaryAuthTag: encryptedSummary.authTag,
+      summaryCiphertext: encryptedSummary.ciphertext,
+      summaryKeyVersion: encryptedSummary.keyVersion,
+
       progress: 0,
       shareId: generateShareId(),
     },

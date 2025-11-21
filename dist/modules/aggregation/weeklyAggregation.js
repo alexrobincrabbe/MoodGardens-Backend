@@ -4,6 +4,7 @@ import { computePeriodKeysFromDiaryContext, getPreviousWeekKey, getWeekRangeFrom
 import { gardenQueue, gardenJobOpts } from "../../queues/garden.queue.js";
 import { summariseWeek } from "./summariseWeek.js";
 import { generateShareId } from "../../lib/gardens.js";
+import { encryptTextForUser } from "../../crypto/diaryEncryption.js";
 const MIN_ENTRIES_PER_WEEK = 5;
 export async function createWeeklyGardenIfNeeded(user) {
     const userId = user.id;
@@ -46,27 +47,42 @@ export async function createWeeklyGardenIfNeeded(user) {
             },
         },
         orderBy: { dayKey: "asc" },
+        // 🔐 select crypto fields so summariseWeek can decrypt
+        select: {
+            dayKey: true,
+            text: true, // legacy/plaintext fallback
+            iv: true,
+            authTag: true,
+            ciphertext: true,
+        },
     });
     if (entries.length < MIN_ENTRIES_PER_WEEK) {
         console.log("[WEEKLY]", userId, "not enough entries:", entries.length, "required:", MIN_ENTRIES_PER_WEEK);
         return;
     }
     console.log("[WEEKLY]", userId, "summarising week…");
-    const summary = await summariseWeek(entries);
+    const summary = await summariseWeek(prisma, userId, entries);
     console.log("[WEEKLY]", userId, "summary:", summary);
+    // 🔐 encrypt weekly summary for storage
+    const encryptedSummary = await encryptTextForUser(prisma, userId, summary);
     const garden = await prisma.garden.create({
         data: {
             userId: user.id,
             period: "WEEK",
             periodKey: lastCompletedWeekKey,
             status: "PENDING",
+            // keep plaintext for now (like diary text), or set to ""
             summary,
+            summaryIv: encryptedSummary.iv,
+            summaryAuthTag: encryptedSummary.authTag,
+            summaryCiphertext: encryptedSummary.ciphertext,
+            summaryKeyVersion: encryptedSummary.keyVersion,
             progress: 0,
-            shareId: generateShareId(), // 👈 give weekly gardens a shareId too
+            shareId: generateShareId(),
         },
     });
     console.log("[WEEKLY]", userId, "created WEEK garden:", garden);
-    await gardenQueue.add("generate", // 👈 same job name that requestGenerateGarden uses
+    await gardenQueue.add("generate", // same job name that requestGenerateGarden uses
     {
         gardenId: garden.id,
         period: "WEEK",
@@ -75,17 +91,24 @@ export async function createWeeklyGardenIfNeeded(user) {
     console.log("[WEEKLY]", userId, "queued generate-garden job for WEEK", lastCompletedWeekKey);
 }
 /**
- * ✅ NEW: Backfill weekly gardens for *all* past weeks that have enough entries
- * and no WEEK garden yet. (Optional: limit how far back.)
+ * ✅ Backfill weekly gardens for all past weeks that
+ * have enough entries and no WEEK garden yet.
  */
 export async function backfillWeeklyGardensForUser(user, options) {
     const userId = user.id;
     console.log("[WEEKLY-BACKFILL]", userId, "→ starting weekly backfill");
     const { weekKey: currentWeekKey } = computePeriodKeysFromDiaryContext(user.timezone, user.dayRolloverHour);
-    // 1) Fetch all diary entries for this user
+    // 1) Fetch all diary entries for this user (with crypto fields)
     const entries = await prisma.diaryEntry.findMany({
         where: { userId },
         orderBy: { dayKey: "asc" },
+        select: {
+            dayKey: true,
+            text: true,
+            iv: true,
+            authTag: true,
+            ciphertext: true,
+        },
     });
     if (!entries.length) {
         console.log("[WEEKLY-BACKFILL]", userId, "no diary entries – nothing to backfill");
@@ -104,7 +127,7 @@ export async function backfillWeeklyGardensForUser(user, options) {
         byWeek.get(weekKey).push(entry);
     }
     // 3) Sort week keys ascending (old → new)
-    let weekKeys = Array.from(byWeek.keys()).sort(); // string sort works for "YYYY-Www"
+    let weekKeys = Array.from(byWeek.keys()).sort(); // "YYYY-Www" sorts lexicographically
     // Optional: limit how far back to go
     if (options?.maxWeeksAgo && weekKeys.length > options.maxWeeksAgo) {
         weekKeys = weekKeys.slice(-options.maxWeeksAgo);
@@ -131,7 +154,8 @@ export async function backfillWeeklyGardensForUser(user, options) {
             continue;
         }
         console.log("[WEEKLY-BACKFILL]", userId, "summarising week", weekKey, "…");
-        const summary = await summariseWeek(entriesInWeek);
+        // 🔐 BUGFIX: summarise the entries for THIS week, not the whole list
+        const summary = await summariseWeek(prisma, userId, entriesInWeek);
         const weekGarden = await prisma.garden.create({
             data: {
                 userId,

@@ -2,8 +2,9 @@
 import { prisma } from "../../prismaClient.js";
 import { computePeriodKeysFromDiaryContext, getPreviousYearKey, } from "../../utils/periodKeys.js";
 import { gardenQueue, gardenJobOpts } from "../../queues/garden.queue.js";
-import { summariseYearFromMonths } from "./periodSummaries.js";
+import { summariseYearFromMonthlyGardens, } from "./periodSummaries.js";
 import { generateShareId } from "../../lib/gardens.js";
+import { encryptTextForUser } from "../../crypto/diaryEncryption.js";
 const MIN_MONTHLY_GARDENS_PER_YEAR = 3;
 export async function createYearlyGardenIfNeeded(user) {
     const userId = user.id;
@@ -30,7 +31,7 @@ export async function createYearlyGardenIfNeeded(user) {
         });
         return;
     }
-    // Get all MONTH gardens for that year
+    // Get all MONTH gardens for that year (with summary crypto fields)
     const monthlyGardens = await prisma.garden.findMany({
         where: {
             userId,
@@ -40,29 +41,38 @@ export async function createYearlyGardenIfNeeded(user) {
             },
         },
         orderBy: { periodKey: "asc" },
+        select: {
+            periodKey: true,
+            summary: true,
+            summaryIv: true,
+            summaryAuthTag: true,
+            summaryCiphertext: true,
+        },
     });
     console.log("[YEARLY]", userId, "monthly gardens in year", lastCompletedYearKey, "count:", monthlyGardens.length);
     if (monthlyGardens.length < MIN_MONTHLY_GARDENS_PER_YEAR) {
         console.log("[YEARLY]", userId, "not enough monthly gardens for year", lastCompletedYearKey, "have:", monthlyGardens.length, "required:", MIN_MONTHLY_GARDENS_PER_YEAR);
         return;
     }
-    const monthlySummaries = monthlyGardens
-        .map((g) => g.summary?.trim())
-        .filter((s) => !!s && s.length > 0);
-    if (!monthlySummaries.length) {
-        console.log("[YEARLY]", userId, "no monthly summaries to summarise – aborting");
-        return;
-    }
-    console.log("[YEARLY]", userId, "summarising year…");
-    const summary = await summariseYearFromMonths(monthlySummaries);
+    // 🔐 Decrypt monthly summaries and summarise the year
+    console.log("[YEARLY]", userId, "decrypting monthly summaries & summarising year…");
+    const summary = await summariseYearFromMonthlyGardens(prisma, userId, monthlyGardens);
     console.log("[YEARLY]", userId, "year summary:", summary);
+    // 🔐 Encrypt year summary for storage
+    const encryptedSummary = await encryptTextForUser(prisma, userId, summary);
     const yearGarden = await prisma.garden.create({
         data: {
             userId,
             period: "YEAR",
             periodKey: lastCompletedYearKey,
             status: "PENDING",
+            // keep plaintext for now (you can blank this later if you want)
             summary,
+            // encrypted payload
+            summaryIv: encryptedSummary.iv,
+            summaryAuthTag: encryptedSummary.authTag,
+            summaryCiphertext: encryptedSummary.ciphertext,
+            summaryKeyVersion: encryptedSummary.keyVersion,
             progress: 0,
             shareId: generateShareId(),
         },

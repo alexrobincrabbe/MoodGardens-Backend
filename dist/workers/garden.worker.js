@@ -6,6 +6,7 @@ import { prisma } from "../prismaClient.js";
 import OpenAI from "openai";
 import { v2 as cloudinary } from "cloudinary";
 import { buildPromptFromDiary } from "./utils/buildPromptFromDiary.js"; // now async
+import { decryptDiaryForUser } from "../crypto/diaryEncryption.js";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const gardenWorker = new Worker("garden-generate", async (job) => {
     const { gardenId } = job.data;
@@ -40,9 +41,21 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
                 dayKey: garden.periodKey,
             },
             orderBy: { createdAt: "desc" },
-            select: { text: true },
+            select: {
+                text: true, // legacy/plaintext fallback
+                iv: true,
+                authTag: true,
+                ciphertext: true,
+            },
         });
-        sourceText = diaryEntry?.text ?? null;
+        if (diaryEntry) {
+            // Try to decrypt; if this is an old entry with no ciphertext, fall back to plaintext
+            const decrypted = await decryptDiaryForUser(prisma, garden.userId, diaryEntry);
+            sourceText = decrypted ?? diaryEntry.text ?? null;
+        }
+        else {
+            sourceText = null;
+        }
     }
     else {
         // WEEK / MONTH / YEAR: use the garden.summary that the aggregator created

@@ -1,5 +1,6 @@
 // apps/api/src/services/periodSummaries.ts
 import OpenAI from "openai";
+import { decryptTextForUser } from "../../crypto/diaryEncryption.js";
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
@@ -40,9 +41,51 @@ Please write a single coherent summary for the entire ${label.toLowerCase()}.
     }
     return text;
 }
+/**
+ * Old helpers that just work on plaintext string arrays.
+ * These are still useful when you already have decrypted strings.
+ */
 export async function summariseMonthFromWeeks(weeklySummaries) {
     return summariseFromSummaries("Month", weeklySummaries);
 }
 export async function summariseYearFromMonths(monthlySummaries) {
     return summariseFromSummaries("Year", monthlySummaries);
+}
+/**
+ * Decrypt an array of Garden summaries for a user, falling back to plaintext
+ * `summary` if the crypto fields are missing (for older rows).
+ */
+async function decryptGardenSummaries(prisma, userId, gardens) {
+    const result = [];
+    for (const g of gardens) {
+        let text = null;
+        if (g.summaryCiphertext && g.summaryIv && g.summaryAuthTag) {
+            // encrypted path
+            text = await decryptTextForUser(prisma, userId, {
+                iv: g.summaryIv,
+                authTag: g.summaryAuthTag,
+                ciphertext: g.summaryCiphertext,
+            });
+        }
+        // fallback to plaintext summary if needed
+        const final = (text ?? g.summary ?? "").trim();
+        if (final) {
+            result.push(final);
+        }
+    }
+    return result;
+}
+/**
+ * 🔐 Summarise a month from an array of WEEK gardens (with encrypted summaries).
+ */
+export async function summariseMonthFromWeeklyGardens(prisma, userId, weeklyGardens) {
+    const weeklySummaries = await decryptGardenSummaries(prisma, userId, weeklyGardens);
+    return summariseMonthFromWeeks(weeklySummaries);
+}
+/**
+ * 🔐 Summarise a year from an array of MONTH gardens (with encrypted summaries).
+ */
+export async function summariseYearFromMonthlyGardens(prisma, userId, monthlyGardens) {
+    const monthlySummaries = await decryptGardenSummaries(prisma, userId, monthlyGardens);
+    return summariseYearFromMonths(monthlySummaries);
 }

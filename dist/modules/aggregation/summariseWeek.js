@@ -1,10 +1,25 @@
 // src/services/summariseWeek.ts
 import OpenAI from "openai";
+// 🔐 import decrypt helper
+import { decryptDiaryForUser } from "../../crypto/diaryEncryption.js";
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
-export async function summariseWeek(entries) {
-    const text = entries
+/**
+ * Summarise a week of diary entries, decrypting each one first.
+ */
+export async function summariseWeek(prisma, userId, entries) {
+    // 🔐 Decrypt each entry (or fall back to plaintext)
+    const decryptedEntries = await Promise.all(entries.map(async (e) => {
+        const decrypted = e.ciphertext && e.iv && e.authTag
+            ? await decryptDiaryForUser(prisma, userId, e)
+            : null;
+        return {
+            dayKey: e.dayKey,
+            text: decrypted ?? e.text ?? "",
+        };
+    }));
+    const text = decryptedEntries
         .map((e) => `- ${e.dayKey}: ${e.text}`)
         .join("\n");
     const messages = [

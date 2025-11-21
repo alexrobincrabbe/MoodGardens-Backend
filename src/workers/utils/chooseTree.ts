@@ -1,5 +1,5 @@
 // chooseTree.ts
-import type { PrimaryEmotion } from "./mood.types";
+import type { PrimaryEmotion } from "./mood.types.js";
 
 export const TREES = {
     ACACIA_PYCNANTHA: "acacia pycnantha",

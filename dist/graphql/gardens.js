@@ -1,13 +1,39 @@
-import { GardenPeriod, GardenStatus } from "@prisma/client";
+import { GardenPeriod, GardenStatus, } from "@prisma/client";
 import { requireUser } from "../lib/auth/auth.js";
 import { mapGardenOut, generateShareId } from "../lib/gardens.js";
 import { gardenQueue } from "../queues/garden.queue.js";
 import { computeDiaryDayKey } from "../utils/diaryDay.js";
-//QUERIES
+import { decryptTextForUser } from "../crypto/diaryEncryption.js";
+// 🔐 Helper: decrypt a single garden's summary if encrypted
+async function decryptGardenSummaryIfNeeded(prisma, userId, garden) {
+    if (!garden)
+        return garden;
+    if (garden.summaryCiphertext &&
+        garden.summaryIv &&
+        garden.summaryAuthTag) {
+        const decrypted = await decryptTextForUser(prisma, userId, {
+            iv: garden.summaryIv,
+            authTag: garden.summaryAuthTag,
+            ciphertext: garden.summaryCiphertext,
+        });
+        if (decrypted) {
+            return {
+                ...garden,
+                summary: decrypted,
+            };
+        }
+    }
+    return garden;
+}
+// 🔐 Helper: decrypt summaries for many gardens
+async function decryptGardenSummariesIfNeeded(prisma, userId, gardens) {
+    return Promise.all(gardens.map((g) => decryptGardenSummaryIfNeeded(prisma, userId, g)));
+}
+// QUERIES
 //--------------------------------------------------------------------------------------
-//Used for fetching a garden eg. for a specific diary entry.
+// Used for fetching a garden eg. for a specific diary entry.
 export function createGardenQuery(prisma) {
-    return (async (_, args, ctx) => {
+    return async (_, args, ctx) => {
         const userId = requireUser(ctx);
         const g = await prisma.garden.findUnique({
             where: {
@@ -18,25 +44,28 @@ export function createGardenQuery(prisma) {
                 },
             },
         });
-        return mapGardenOut(g);
-    });
+        const decrypted = await decryptGardenSummaryIfNeeded(prisma, userId, g);
+        return mapGardenOut(decrypted);
+    };
 }
-//fetches all gardens for a given user by period TYPE, ie week/month/year
+// Fetches all gardens for a given user by period TYPE, ie week/month/year
 export function createGardensByPeriodQuery(prisma) {
-    return (async (_, args, ctx) => {
+    return async (_, args, ctx) => {
         const userId = requireUser(ctx);
         const gardens = await prisma.garden.findMany({
             where: {
                 userId,
                 period: args.period,
-            }
+            },
+            orderBy: { periodKey: "asc" },
         });
-        return gardens.map(mapGardenOut);
-    });
+        const decrypted = await decryptGardenSummariesIfNeeded(prisma, userId, gardens);
+        return decrypted.map(mapGardenOut);
+    };
 }
-// fetches all (period type: DAY) gardens for a given user for a given month, eg. Feb 2025
+// Fetches all (period type: DAY) gardens for a given user for a given month, eg. Feb 2025
 export function createGardensByMonthQuery(prisma) {
-    return (async (_, args, ctx) => {
+    return async (_, args, ctx) => {
         const userId = requireUser(ctx);
         const gardens = await prisma.garden.findMany({
             where: {
@@ -46,13 +75,14 @@ export function createGardensByMonthQuery(prisma) {
             },
             orderBy: { periodKey: "asc" },
         });
-        return gardens.map(mapGardenOut);
-    });
+        const decrypted = await decryptGardenSummariesIfNeeded(prisma, userId, gardens);
+        return decrypted.map(mapGardenOut);
+    };
 }
-//MUTATIONS
+// MUTATIONS
 //-------------------------------------------------------------------------
 export function createRequestGenerateGardenMutation(prisma) {
-    return (async (_, args, ctx) => {
+    return async (_, args, ctx) => {
         const userId = requireUser(ctx);
         try {
             const user = await prisma.user.findUnique({
@@ -75,7 +105,7 @@ export function createRequestGenerateGardenMutation(prisma) {
                 }
                 periodKey = args.periodKey;
             }
-            // 3) Use the *computed* periodKey everywhere from here on
+            // Use the computed periodKey everywhere from here on
             let pending = await prisma.garden.upsert({
                 where: {
                     userId_period_periodKey: {
@@ -119,5 +149,5 @@ export function createRequestGenerateGardenMutation(prisma) {
             console.error("[requestGenerateGarden] ERROR:", err);
             throw err;
         }
-    });
+    };
 }

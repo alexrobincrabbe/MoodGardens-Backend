@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./config/settings.js";
+import { setupAdminPanel } from "./admin/admin.js"; // adjust path
 const app = express();
 app.use(cors({
     origin: ["http://localhost:5173", "http://localhost:3000", "https://mood-gardens-frontend.vercel.app/"], // adjust
@@ -11,10 +12,8 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json());
-// If you're behind a proxy (Vercel/Render/Heroku/Nginx), allow secure cookies:
 if (process.env.NODE_ENV === "production")
     app.set("trust proxy", 1);
-// Attach userId from mg_jwt cookie if valid
 app.use((req, _res, next) => {
     const token = req.cookies?.mg_jwt;
     if (token) {
@@ -31,3 +30,4 @@ app.use((req, _res, next) => {
     }
     next();
 });
+setupAdminPanel(app);

@@ -1,7 +1,7 @@
 import { prisma } from "../../prismaClient.js";
 import { createWeeklyGardenIfNeeded } from "./weeklyAggregation.js";
-import { createMonthlyGardenIfNeeded } from "./monthlyAggregation";
-import { createYearlyGardenIfNeeded } from "./yearlyAggregation";
+import { createMonthlyGardenIfNeeded } from "./monthlyAggregation.js";
+import { createYearlyGardenIfNeeded } from "./yearlyAggregation.js";
 
 export async function runAggregations() {
     console.log("[aggregation] Starting aggregation run…");

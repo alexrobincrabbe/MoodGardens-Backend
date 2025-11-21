@@ -17,6 +17,7 @@ import {
 } from "./config/settings.js";
 import { setupAggregationJobs } from "./bootstrapAggregationJobs.js";
 import { devRouter } from "./routes/dev.routes.js";
+import { setupAdminPanel } from "./admin/admin.js";
 
 
 type Context = {
@@ -29,19 +30,18 @@ async function main() {
     const app = express();
     await setupAggregationJobs();
     app.use((req, _res, next) => {
-    console.log("[API]", req.method, req.url);
-    next();
-});
-    // Common middleware FIRST
+        console.log("[API]", req.method, req.url);
+        next();
+    });
     app.set("trust proxy", 1);
-    app.use(cors(corsOptions));
-    app.options("*", cors(corsOptions));
     app.use(cookieParser());
     app.use(express.json());   // 👈 JSON parser before any routes
-
-
     // Dev routes (now have req.body)
     app.use("/dev", devRouter);
+    setupAdminPanel(app);
+
+    app.use(cors(corsOptions));
+    app.options("*", cors(corsOptions));
 
     // Public JSON used by the frontend /share/:id page
     mountShareMeta(app, prisma);

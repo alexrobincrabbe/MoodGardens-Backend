@@ -9,14 +9,21 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "worker:garden": "node dist/workers/garden.worker.js",
-    "worker:aggregation": "node dist/workers/aggregation.worker.js"
+    "worker:aggregation": "node dist/workers/aggregation.worker.js",
+    "backfill:diary": "node dist/scripts/backfillDiaryEncryption.js",
+    "backfill:garden-summaries": "node -r dotenv/config dist/scripts/backfillGardenSummaries.js",
+    "backfill:remove-diary-text": "node -r dotenv/config dist/scripts/backfillRemoveDiaryText.js",
+    "backfill:remove-garden-summaries": "node -r dotenv/config dist/scripts/backfillRemoveGardenSummaries.js"
   },
   "dependencies": {
+    "@adminjs/express": "^6.1.1",
+    "@adminjs/prisma": "^5.0.4",
     "@apollo/server": "^4.11.0",
     "@aws-sdk/client-kms": "^3.883.0",
     "@azure/identity": "^4.11.1",
     "@azure/keyvault-keys": "^4.10.0",
     "@prisma/client": "^5.22.0",
+    "adminjs": "^7.8.17",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.58.2",
     "cloudinary": "^2.7.0",
@@ -24,6 +31,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^4.21.2",
+    "express-session": "^1.18.2",
     "google-auth-library": "^10.5.0",
     "graphql": "^16.9.0",
     "graphql-type-json": "^0.3.2",
@@ -31,17 +39,22 @@
     "jsonwebtoken": "^9.0.2",
     "luxon": "^3.7.2",
     "openai": "^5.17.0",
+    "prisma": "^5.22.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/babel-core": "^6.25.10",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
-    "@types/express": "^4.17.23",
+    "@types/express": "^4.17.25",
+    "@types/express-session": "^1.18.2",
+    "@types/flat": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/luxon": "^3.7.1",
     "@types/node": "^20.19.11",
-    "prisma": "^5.22.0",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.2"
   }
 }

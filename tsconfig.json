@@ -1,12 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "outDir": "dist",
     "rootDir": "src",
     "esModuleInterop": true,
-    "strict": true
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "types": ["node"]           // 👈 override any inherited "types"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]   // 👈 do NOT compile stuff from node_modules
 }

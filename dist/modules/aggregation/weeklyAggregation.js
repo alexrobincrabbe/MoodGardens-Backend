@@ -8,18 +8,8 @@ import { encryptTextForUser } from "../../crypto/diaryEncryption.js";
 const MIN_ENTRIES_PER_WEEK = 5;
 export async function createWeeklyGardenIfNeeded(user) {
     const userId = user.id;
-    console.log("[WEEKLY]", userId, "→ starting weekly aggregation");
     const { weekKey: currentWeekKey } = computePeriodKeysFromDiaryContext(user.timezone, user.dayRolloverHour);
     const lastCompletedWeekKey = getPreviousWeekKey(currentWeekKey);
-    console.log("[WEEKLY]", userId, "currentWeekKey:", currentWeekKey);
-    console.log("[WEEKLY]", userId, "lastCompletedWeekKey:", lastCompletedWeekKey);
-    // show existing WEEK gardens
-    const existingWeeklyGardens = await prisma.garden.findMany({
-        where: { userId, period: "WEEK" },
-        orderBy: { periodKey: "asc" },
-    });
-    console.log("[WEEKLY]", userId, "existing WEEK gardens:", existingWeeklyGardens);
-    // check if one already exists for lastCompletedWeekKey
     const existing = await prisma.garden.findUnique({
         where: {
             userId_period_periodKey: {
@@ -47,10 +37,9 @@ export async function createWeeklyGardenIfNeeded(user) {
             },
         },
         orderBy: { dayKey: "asc" },
-        // 🔐 select crypto fields so summariseWeek can decrypt
         select: {
             dayKey: true,
-            text: true, // legacy/plaintext fallback
+            text: true,
             iv: true,
             authTag: true,
             ciphertext: true,
@@ -62,8 +51,6 @@ export async function createWeeklyGardenIfNeeded(user) {
     }
     console.log("[WEEKLY]", userId, "summarising week…");
     const summary = await summariseWeek(prisma, userId, entries);
-    console.log("[WEEKLY]", userId, "summary:", summary);
-    // 🔐 encrypt weekly summary for storage
     const encryptedSummary = await encryptTextForUser(prisma, userId, summary);
     const garden = await prisma.garden.create({
         data: {
@@ -71,7 +58,6 @@ export async function createWeeklyGardenIfNeeded(user) {
             period: "WEEK",
             periodKey: lastCompletedWeekKey,
             status: "PENDING",
-            // keep plaintext for now (like diary text), or set to ""
             summary,
             summaryIv: encryptedSummary.iv,
             summaryAuthTag: encryptedSummary.authTag,
@@ -81,14 +67,12 @@ export async function createWeeklyGardenIfNeeded(user) {
             shareId: generateShareId(),
         },
     });
-    console.log("[WEEKLY]", userId, "created WEEK garden:", garden);
-    await gardenQueue.add("generate", // same job name that requestGenerateGarden uses
-    {
+    console.log("[WEEKLY]", userId, "created WEEK garden for", lastCompletedWeekKey, "→", garden.id);
+    await gardenQueue.add("generate", {
         gardenId: garden.id,
         period: "WEEK",
         periodKey: lastCompletedWeekKey,
     }, gardenJobOpts);
-    console.log("[WEEKLY]", userId, "queued generate-garden job for WEEK", lastCompletedWeekKey);
 }
 /**
  * ✅ Backfill weekly gardens for all past weeks that
@@ -96,7 +80,6 @@ export async function createWeeklyGardenIfNeeded(user) {
  */
 export async function backfillWeeklyGardensForUser(user, options) {
     const userId = user.id;
-    console.log("[WEEKLY-BACKFILL]", userId, "→ starting weekly backfill");
     const { weekKey: currentWeekKey } = computePeriodKeysFromDiaryContext(user.timezone, user.dayRolloverHour);
     // 1) Fetch all diary entries for this user (with crypto fields)
     const entries = await prisma.diaryEntry.findMany({

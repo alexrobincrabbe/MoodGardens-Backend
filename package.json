@@ -13,7 +13,8 @@
     "backfill:diary": "node dist/scripts/backfillDiaryEncryption.js",
     "backfill:garden-summaries": "node -r dotenv/config dist/scripts/backfillGardenSummaries.js",
     "backfill:remove-diary-text": "node -r dotenv/config dist/scripts/backfillRemoveDiaryText.js",
-    "backfill:remove-garden-summaries": "node -r dotenv/config dist/scripts/backfillRemoveGardenSummaries.js"
+    "backfill:remove-garden-summaries": "node -r dotenv/config dist/scripts/backfillRemoveGardenSummaries.js",
+    "schedule:aggregations": "node -r dotenv/config dist/scripts/scheduleAggregations.js"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",

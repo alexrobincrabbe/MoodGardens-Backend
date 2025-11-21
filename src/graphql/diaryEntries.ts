@@ -1,19 +1,12 @@
-// src/graphql/diary.ts (or whatever this file is called)
 import { type PrismaClient } from "@prisma/client";
 import { type Context, requireUser } from "../lib/auth/auth.js";
 import { computeDiaryDayKey } from "../utils/diaryDay.js";
-
-// 🔐 Azure-based encryption helpers
-import {
-  encryptDiaryForUser,
-  decryptDiaryForUser,
-} from "../crypto/diaryEncryption.js";
+import { decryptDiaryForUser } from "../crypto/diaryEncryption.js";
 
 type CreateDiaryEntryArgs = { text: string };
 
 // QUERIES
 //-----------------------------------------------------------------------------------------
-
 export function createDairyEntryQuery(prisma: PrismaClient) {
   return async (_: unknown, args: { dayKey: string }, ctx: Context) => {
     const userId = requireUser(ctx);
@@ -22,24 +15,32 @@ export function createDairyEntryQuery(prisma: PrismaClient) {
       where: { userId_dayKey: { userId, dayKey: args.dayKey } },
       select: {
         id: true,
-        text: true, // legacy/plaintext fallback
+        text: true,
         dayKey: true,
         createdAt: true,
         iv: true,
         authTag: true,
         ciphertext: true,
-        keyVersion: true,
       },
     });
 
     if (!entry) return null;
 
-    // Try to decrypt; if this is an old entry with no ciphertext, fall back to `text`
-    const decrypted = await decryptDiaryForUser(prisma, userId, entry);
+    let text = entry.text;
+    try {
+      const decrypted = await decryptDiaryForUser(prisma, userId, entry);
+      if (decrypted) text = decrypted;
+    } catch (err) {
+      console.error(
+        "[diaryEntry] decrypt failed, falling back to plaintext",
+        { userId, dayKey: args.dayKey },
+        err
+      );
+    }
 
     return {
       ...entry,
-      text: decrypted ?? entry.text,
+      text,
     };
   };
 }
@@ -48,7 +49,7 @@ export function createPaginatedEntriesQuery(prisma: PrismaClient) {
   return async (
     _: unknown,
     args: { limit: number; offset: number },
-    ctx: Context,
+    ctx: Context
   ) => {
     const userId = requireUser(ctx);
 
@@ -59,28 +60,37 @@ export function createPaginatedEntriesQuery(prisma: PrismaClient) {
       skip: Math.max(0, args.offset),
       select: {
         id: true,
-        text: true, // legacy/plaintext fallback
+        text: true,
         dayKey: true,
         createdAt: true,
         iv: true,
         authTag: true,
         ciphertext: true,
-        keyVersion: true,
       },
     });
 
-    // Decrypt each entry; if no ciphertext, keep plaintext text
-    const decryptedEntries = await Promise.all(
+    const result = await Promise.all(
       entries.map(async (entry) => {
-        const decrypted = await decryptDiaryForUser(prisma, userId, entry);
+        let text = entry.text;
+        try {
+          const decrypted = await decryptDiaryForUser(prisma, userId, entry);
+          if (decrypted) text = decrypted;
+        } catch (err) {
+          console.error(
+            "[paginatedDiaryEntries] decrypt failed, falling back to plaintext",
+            { userId, entryId: entry.id },
+            err
+          );
+        }
+
         return {
           ...entry,
-          text: decrypted ?? entry.text,
+          text,
         };
-      }),
+      })
     );
 
-    return decryptedEntries;
+    return result;
   };
 }
 
@@ -94,14 +104,12 @@ export function createCurrentDayKeyQuery(prisma: PrismaClient) {
     if (!user) throw new Error("User not found");
     return computeDiaryDayKey(
       user.timezone ?? "UTC",
-      user.dayRolloverHour ?? 0,
+      user.dayRolloverHour ?? 0
     );
   };
 }
 
-// MUTATIONS
-//--------------------------------------------------------------------------------
-
+// MUTATIONS (can stay as-is; they don't need decrypt)
 export function createCreateDiaryEntryMutation(prisma: PrismaClient) {
   return async (_: unknown, args: CreateDiaryEntryArgs, ctx: Context) => {
     const userId = requireUser(ctx);
@@ -111,45 +119,17 @@ export function createCreateDiaryEntryMutation(prisma: PrismaClient) {
       select: { timezone: true, dayRolloverHour: true },
     });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (!user) throw new Error("User not found");
 
     const dayKey = computeDiaryDayKey(
       user.timezone ?? "UTC",
-      user.dayRolloverHour ?? 0,
+      user.dayRolloverHour ?? 0
     );
 
-    // 🔐 Encrypt the text for this user
-    const encrypted = await encryptDiaryForUser(prisma, userId, args.text);
-
     const diaryEntry = await prisma.diaryEntry.create({
-      data: {
-        userId,
-        dayKey,
-        // you can keep plaintext for now if you want an easier migration:
-        // text: args.text,
-        text: "", // or "" if you want to avoid storing plaintext
-        ...encrypted, // iv, authTag, ciphertext, keyVersion
-      },
-      select: {
-        id: true,
-        dayKey: true,
-        createdAt: true,
-        text: true,
-        iv: true,
-        authTag: true,
-        ciphertext: true,
-        keyVersion: true,
-      },
+      data: { text: args.text, dayKey, userId },
     });
 
-    // Decrypt before returning, so GraphQL always exposes `text` as plaintext
-    const decrypted = await decryptDiaryForUser(prisma, userId, diaryEntry);
-
-    return {
-      ...diaryEntry,
-      text: decrypted ?? args.text,
-    };
+    return diaryEntry;
   };
 }

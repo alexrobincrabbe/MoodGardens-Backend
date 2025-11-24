@@ -1,8 +1,6 @@
-// apps/api/src/config/settings.ts
 import "dotenv/config";
+//CORS
 const normalizeOrigin = (s) => (s ?? "").replace(/\/+$/, "");
-export const JWT_SECRET = process.env.JWT_SECRET ?? "dev-insecure-secret";
-export const PUBLIC_ORIGIN = normalizeOrigin(process.env.PUBLIC_ORIGIN || "http://localhost:4000");
 export const APP_ORIGIN = normalizeOrigin(process.env.APP_ORIGIN || "http://localhost:5173");
 const rawCors = process.env.CORS_ORIGINS || APP_ORIGIN;
 export const CORS_ORIGINS = rawCors
@@ -10,9 +8,6 @@ export const CORS_ORIGINS = rawCors
     .map((s) => normalizeOrigin(s.trim()))
     .filter(Boolean);
 export const allowedOrigins = new Set([APP_ORIGIN, ...CORS_ORIGINS]);
-export const COOKIE_SECURE = process.env.COOKIE_SECURE === "true"; // true in prod (HTTPS)
-export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
-export const PORT = Number(process.env.PORT ?? 4000);
 export const corsOptions = {
     origin(origin, cb) {
         if (!origin)
@@ -33,3 +28,9 @@ export const corsOptions = {
     allowedHeaders: ["Content-Type", "Authorization", "Apollo-Require-Preflight"],
 };
 export const joinOrigin = (origin, path) => new URL(path.replace(/^\/+/, ""), origin.replace(/\/+$/, "") + "/").toString();
+//AUTH
+export const JWT_SECRET = process.env.JWT_SECRET ?? "dev-insecure-secret";
+export const COOKIE_SECURE = process.env.COOKIE_SECURE === "true";
+export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+//PORT
+export const PORT = Number(process.env.PORT ?? 4000);

@@ -1,6 +1,6 @@
 // src/keyvault.ts
 import crypto from "crypto";
-import { DefaultAzureCredential, ClientSecretCredential } from "@azure/identity";
+import { ClientSecretCredential } from "@azure/identity";
 import {
   KeyClient,
   CryptographyClient,
@@ -13,24 +13,21 @@ function mustGetEnv(name: string): string {
   return v;
 }
 
+// e.g. "https://<your-vault-name>.vault.azure.net"
 const KEY_VAULT_URL = mustGetEnv("AZURE_KEY_VAULT_URL");
+// Name of your RSA key in the vault, e.g. "diary-key"
 const KEY_VAULT_KEY_NAME = mustGetEnv("KEY_VAULT_KEY_NAME");
 
-function createCredential() {
-  const tenantId = process.env.AZURE_TENANT_ID;
-  const clientId = process.env.AZURE_CLIENT_ID;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET;
+// 🔐 service principal creds (same ones you put on Heroku)
+const AZURE_TENANT_ID = mustGetEnv("AZURE_TENANT_ID");
+const AZURE_CLIENT_ID = mustGetEnv("AZURE_CLIENT_ID");
+const AZURE_CLIENT_SECRET = mustGetEnv("AZURE_CLIENT_SECRET");
 
-  if (tenantId && clientId && clientSecret) {
-    // 👇 For Heroku / any server with explicit credentials
-    return new ClientSecretCredential(tenantId, clientId, clientSecret);
-  }
-
-  // 👇 For local dev, fall back to DefaultAzureCredential (VS Code / CLI / etc.)
-  return new DefaultAzureCredential();
-}
-
-const credential = createCredential();
+const credential = new ClientSecretCredential(
+  AZURE_TENANT_ID,
+  AZURE_CLIENT_ID,
+  AZURE_CLIENT_SECRET
+);
 
 let cachedCrypto: { client: CryptographyClient; keyId: string } | null = null;
 
@@ -38,7 +35,7 @@ async function getCryptoClient(): Promise<{ client: CryptographyClient; keyId: s
   if (cachedCrypto) return cachedCrypto;
 
   const keyClient = new KeyClient(KEY_VAULT_URL, credential);
-  const key = await keyClient.getKey(KEY_VAULT_KEY_NAME);
+  const key = await keyClient.getKey(KEY_VAULT_KEY_NAME); // latest version
   if (!key.id) throw new Error("Key Vault key has no id");
   const client = new CryptographyClient(key.id, credential);
 
@@ -49,7 +46,7 @@ async function getCryptoClient(): Promise<{ client: CryptographyClient; keyId: s
 export async function generateUserDEK(userId: string) {
   const { client, keyId } = await getCryptoClient();
 
-  const dek = crypto.randomBytes(32);
+  const dek = crypto.randomBytes(32); // AES-256 DEK
   const wrapped = await client.wrapKey("RSA-OAEP-256" as KeyWrapAlgorithm, dek);
 
   return {

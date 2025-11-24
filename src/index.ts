@@ -11,7 +11,6 @@ import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
 import {
     JWT_SECRET,
-    PUBLIC_ORIGIN,
     PORT,
     corsOptions,
 } from "./config/settings.js";
@@ -27,31 +26,35 @@ type Context = {
 };
 
 async function main() {
+    //Start app
     const app = express();
+    //set up jobs
     await setupAggregationJobs();
+    //Log requests
     app.use((req, _res, next) => {
         console.log("[API]", req.method, req.url);
         next();
     });
+    //app settings
     app.set("trust proxy", 1);
     app.use(cookieParser());
-    app.use(express.json());   // 👈 JSON parser before any routes
-    // Dev routes (now have req.body)
+    app.use(express.json());
+    // Dev routes
     app.use("/dev", devRouter);
+    // Mount admin panel
     setupAdminPanel(app);
-
+    //CORS
     app.use(cors(corsOptions));
     app.options("*", cors(corsOptions));
-
     // Public JSON used by the frontend /share/:id page
     mountShareMeta(app, prisma);
-
+    // Create Apollo/graphQL server
     const server = new ApolloServer({
         typeDefs,
         resolvers: createResolvers(prisma),
     });
     await server.start();
-
+    // Auth
     app.use(
         "/graphql",
         expressMiddleware(server, {
@@ -70,17 +73,16 @@ async function main() {
             },
         })
     );
-
+    // Health check
     app.get("/healthz", (_req, res) => res.send("ok"));
-
+    // Catch errors
     app.use((req, res) => {
         console.log("[API] 404", req.method, req.url);
         res.status(404).json({ error: "not_found", path: req.url });
     });
-
+    // listen on port
     app.listen(PORT, () => {
         console.log(`GraphQL on http://0.0.0.0:${PORT}/graphql`);
-        console.log(`Public shares on ${PUBLIC_ORIGIN}/share/:shareId`);
     });
 }
 

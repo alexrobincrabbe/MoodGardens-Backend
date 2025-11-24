@@ -10,31 +10,61 @@ import { decryptDiaryForUser } from "../crypto/diaryEncryption.js";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const gardenWorker = new Worker("garden-generate", async (job) => {
     const { gardenId } = job.data;
+    try {
+        const { garden, originalSummary } = await fetchGarden(gardenId);
+        await job.updateProgress(10);
+        const sourceText = await fetchAndDecryptDiaryOrSummary(garden);
+        await job.updateProgress(30);
+        const prompt = await analyseText({ garden, sourceText });
+        await job.updateProgress(50);
+        const buffer = await growGarden({ garden, prompt });
+        await job.updateProgress(75);
+        const uploadResult = await uploadGarden({ garden, buffer });
+        const finalSummary = await setFinalSummary({ garden, sourceText, originalSummary });
+        await job.updateProgress(100);
+        const updated = await updateGarden({ garden, uploadResult, finalSummary });
+        console.log("[garden.worker] finished garden:", updated.id, {
+            status: updated.status,
+            progress: updated.progress,
+            imageUrl: updated.imageUrl,
+            publicId: updated.publicId,
+        });
+    }
+    catch (err) {
+        console.error("[garden.worker] job failed", { gardenId }, err);
+        try {
+            await prisma.garden.update({
+                where: { id: gardenId },
+                data: {
+                    status: GardenStatus.FAILED,
+                    progress: 100,
+                    summary: "We couldn't finish this garden due to an error.",
+                },
+            });
+        }
+        catch (updateErr) {
+            console.error("[garden.worker] failed to update garden status after error", { gardenId }, updateErr);
+        }
+        throw err;
+    }
+}, { connection: redis });
+async function fetchGarden(gardenId) {
     const garden = await prisma.garden.findUniqueOrThrow({
         where: { id: gardenId },
-        select: {
-            id: true,
-            period: true,
-            periodKey: true,
-            userId: true,
-            summary: true,
-        },
     });
-    // Keep the original summary so we can restore it for WEEK/MONTH/YEAR
     const originalSummary = garden.summary;
-    await job.updateProgress(10);
+    return { garden, originalSummary };
+}
+async function fetchAndDecryptDiaryOrSummary(garden) {
     await prisma.garden.update({
         where: { id: garden.id },
         data: {
             progress: 10,
-            // progress text – OK to show as "status text"
             summary: "Gathering inspiration from your diary…",
         },
     });
-    // Decide what text we feed into the prompt builder
     let sourceText = null;
     if (garden.period === "DAY") {
-        // Daily gardens: use the diary entry text for that day
         const diaryEntry = await prisma.diaryEntry.findFirst({
             where: {
                 userId: garden.userId,
@@ -49,30 +79,33 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
             },
         });
         if (diaryEntry) {
-            // Try to decrypt; if this is an old entry with no ciphertext, fall back to plaintext
-            const decrypted = await decryptDiaryForUser(prisma, garden.userId, diaryEntry);
-            sourceText = decrypted ?? diaryEntry.text ?? null;
+            try {
+                const decrypted = await decryptDiaryForUser(prisma, garden.userId, diaryEntry);
+                sourceText =
+                    (decrypted && decrypted.trim().length > 0
+                        ? decrypted
+                        : diaryEntry.text && diaryEntry.text.trim().length > 0
+                            ? diaryEntry.text
+                            : null);
+            }
+            catch (err) {
+                console.error("[garden.worker] decryptDiaryForUser failed; falling back to plaintext / empty", { gardenId: garden.id, userId: garden.userId }, err);
+                sourceText =
+                    diaryEntry.text && diaryEntry.text.trim().length > 0
+                        ? diaryEntry.text
+                        : null;
+            }
         }
         else {
-            sourceText = null;
+            return sourceText = null;
         }
     }
     else {
         // WEEK / MONTH / YEAR: use the garden.summary that the aggregator created
-        sourceText = garden.summary ?? null;
+        return sourceText = garden.summary ?? null;
     }
-    await job.updateProgress(30);
-    await prisma.garden.update({
-        where: { id: garden.id },
-        data: { progress: 30, summary: "Analysing your mood & themes…" },
-    });
-    const { prompt /* , mood */ } = await buildPromptFromDiary({
-        diaryText: sourceText && sourceText.trim().length > 0
-            ? sourceText
-            : "A reflective period in the diary, to be rendered as a symbolic garden.",
-        openai,
-    });
-    await job.updateProgress(50);
+}
+async function growGarden({ garden, prompt }) {
     await prisma.garden.update({
         where: { id: garden.id },
         data: { progress: 50, summary: "Painting plants & colors…" },
@@ -87,7 +120,9 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
     if (!b64)
         throw new Error("OpenAI image generation returned no image data.");
     const buffer = Buffer.from(b64, "base64");
-    await job.updateProgress(75);
+    return buffer;
+}
+async function uploadGarden({ garden, buffer }) {
     await prisma.garden.update({
         where: { id: garden.id },
         data: {
@@ -106,9 +141,22 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
         }, (err, result) => (err ? reject(err) : resolve(result)));
         upload.end(buffer);
     });
-    // Decide final summary:
-    //  - DAY: keep your existing generic text
-    //  - WEEK/MONTH/YEAR: restore aggregator's summary if present
+    return uploadResult;
+}
+async function analyseText({ garden, sourceText }) {
+    await prisma.garden.update({
+        where: { id: garden.id },
+        data: { progress: 30, summary: "Analysing your mood & themes…" },
+    });
+    const { prompt } = await buildPromptFromDiary({
+        diaryText: sourceText && sourceText.trim().length > 0
+            ? sourceText
+            : "This diary entry was empty.",
+        openai,
+    });
+    return prompt;
+}
+async function setFinalSummary({ garden, sourceText, originalSummary }) {
     let finalSummary;
     if (garden.period === "DAY") {
         finalSummary =
@@ -122,7 +170,9 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
                 ? originalSummary
                 : "A garden reflecting this period in your life.";
     }
-    await job.updateProgress(100);
+    return finalSummary;
+}
+async function updateGarden({ garden, uploadResult, finalSummary }) {
     const updated = await prisma.garden.update({
         where: { id: garden.id },
         data: {
@@ -133,14 +183,5 @@ export const gardenWorker = new Worker("garden-generate", async (job) => {
             progress: 100,
         },
     });
-    console.log("[garden.worker] finished garden:", updated.id, {
-        status: updated.status,
-        progress: updated.progress,
-        imageUrl: updated.imageUrl,
-        publicId: updated.publicId,
-    });
-    return {
-        imageUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-    };
-}, { connection: redis });
+    return updated;
+}

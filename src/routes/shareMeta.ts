@@ -1,4 +1,3 @@
-// apps/api/src/routes/share-meta.ts (or your file)
 import type { Express } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { APP_ORIGIN } from "../config/settings.js";
@@ -8,7 +7,6 @@ import { v2 as cloudinary } from "cloudinary";
 function formatDayKey(dayKey: string): string {
   const date = new Date(dayKey);
   if (isNaN(date.getTime())) return dayKey; // fallback if invalid
-
   const day = date.getDate();
   const daySuffix =
     day % 10 === 1 && day !== 11
@@ -18,16 +16,13 @@ function formatDayKey(dayKey: string): string {
       : day % 10 === 3 && day !== 13
       ? "rd"
       : "th";
-
   const weekday = date.toLocaleDateString("en-GB", { weekday: "long" });
   const month = date.toLocaleDateString("en-GB", { month: "long" });
   const year = date.getFullYear();
-
   return `${weekday} ${day}${daySuffix} of ${month} ${year}`;
 }
-// Build a proper OG image from Cloudinary publicId
+
 function ogFromPublicId(publicId: string) {
-  // 1200x630, auto-crop + auto format/quality
   return cloudinary.url(publicId, {
     secure: true,
     transformation: [
@@ -37,7 +32,6 @@ function ogFromPublicId(publicId: string) {
   });
 }
 
-/** Mount /share-meta/:shareId (and .json) and normalize the id. */
 export function mountShareMeta(app: Express, prisma: PrismaClient) {
   app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
     const raw = String(req.params.shareId || "");
@@ -49,7 +43,6 @@ export function mountShareMeta(app: Express, prisma: PrismaClient) {
         period: true,
         periodKey: true,
         publicId: true,        // <— NEW
-        imageUrl: true,        // legacy fallback
         summary: true,
         user: { select: { displayName: true } },
       },
@@ -60,9 +53,8 @@ export function mountShareMeta(app: Express, prisma: PrismaClient) {
     const baseTitle = `Mood Garden — ${formattedDate}`;
     const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
     const desc = garden.summary || "A garden grown from my day.";
-    const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.imageUrl || null;
+    const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.publicId|| null;
     const viewLink = `${APP_ORIGIN}`;
-
     res.json({ owner, title, desc, img, period: garden.period, periodKey: garden.periodKey, formattedDate, viewLink });
   });
 }

@@ -11,16 +11,21 @@ async function decryptGardenSummaryIfNeeded(prisma, userId, garden) {
     if (garden.summaryCiphertext &&
         garden.summaryIv &&
         garden.summaryAuthTag) {
-        const decrypted = await decryptTextForUser(prisma, userId, {
-            iv: garden.summaryIv,
-            authTag: garden.summaryAuthTag,
-            ciphertext: garden.summaryCiphertext,
-        });
-        if (decrypted) {
-            return {
-                ...garden,
-                summary: decrypted,
-            };
+        try {
+            const decrypted = await decryptTextForUser(prisma, userId, {
+                iv: garden.summaryIv,
+                authTag: garden.summaryAuthTag,
+                ciphertext: garden.summaryCiphertext,
+            });
+            if (decrypted) {
+                return {
+                    ...garden,
+                    summary: decrypted,
+                };
+            }
+        }
+        catch (err) {
+            console.error("[garden] decrypt summary failed; falling back to plaintext/empty", { gardenId: garden.id, userId }, err);
         }
     }
     return garden;
@@ -96,7 +101,6 @@ export function createRequestGenerateGardenMutation(prisma) {
             let periodKey;
             if (args.period === "DAY") {
                 periodKey = computeDiaryDayKey(user.timezone ?? "UTC", user.dayRolloverHour ?? 0);
-                console.log("[requestGenerateGarden] computed DAY periodKey:", periodKey);
             }
             else {
                 if (!args.periodKey) {
@@ -105,38 +109,17 @@ export function createRequestGenerateGardenMutation(prisma) {
                 }
                 periodKey = args.periodKey;
             }
-            // Use the computed periodKey everywhere from here on
-            let pending = await prisma.garden.upsert({
-                where: {
-                    userId_period_periodKey: {
-                        userId,
-                        period: args.period,
-                        periodKey,
-                    },
-                },
-                update: {
-                    status: GardenStatus.PENDING,
-                    imageUrl: null,
-                    summary: "Your garden is growing…",
-                    progress: 0,
-                },
-                create: {
+            let pending = await prisma.garden.create({
+                data: {
                     userId,
                     period: args.period,
                     periodKey,
                     status: GardenStatus.PENDING,
-                    imageUrl: null,
                     summary: "Your garden is growing…",
                     progress: 0,
                     shareId: generateShareId(),
                 },
             });
-            if (!pending.shareId) {
-                pending = await prisma.garden.update({
-                    where: { id: pending.id },
-                    data: { shareId: generateShareId() },
-                });
-            }
             await gardenQueue.add("generate", {
                 gardenId: pending.id,
                 period: args.period,

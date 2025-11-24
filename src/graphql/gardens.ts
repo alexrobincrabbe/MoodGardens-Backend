@@ -133,27 +133,20 @@ export function createGardensByMonthQuery(prisma: PrismaClient) {
 export function createRequestGenerateGardenMutation(prisma: PrismaClient) {
     return async (_: unknown, args: GardenArgs, ctx: Context) => {
         const userId = requireUser(ctx);
-
         try {
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: { timezone: true, dayRolloverHour: true },
             });
-
             if (!user) {
                 console.error("[requestGenerateGarden] user not found:", { userId });
                 throw new Error("User not found");
             }
-
             let periodKey: string;
             if (args.period === "DAY") {
                 periodKey = computeDiaryDayKey(
                     user.timezone ?? "UTC",
                     user.dayRolloverHour ?? 0,
-                );
-                console.log(
-                    "[requestGenerateGarden] computed DAY periodKey:",
-                    periodKey,
                 );
             } else {
                 if (!args.periodKey) {
@@ -165,40 +158,17 @@ export function createRequestGenerateGardenMutation(prisma: PrismaClient) {
                 }
                 periodKey = args.periodKey;
             }
-
-            // Use the computed periodKey everywhere from here on
-            let pending = await prisma.garden.upsert({
-                where: {
-                    userId_period_periodKey: {
-                        userId,
-                        period: args.period,
-                        periodKey,
-                    },
-                },
-                update: {
-                    status: GardenStatus.PENDING,
-                    imageUrl: null,
-                    summary: "Your garden is growing…",
-                    progress: 0,
-                },
-                create: {
+            let pending = await prisma.garden.create({
+                data: {
                     userId,
                     period: args.period,
                     periodKey,
                     status: GardenStatus.PENDING,
-                    imageUrl: null,
                     summary: "Your garden is growing…",
                     progress: 0,
                     shareId: generateShareId(),
                 },
             });
-
-            if (!pending.shareId) {
-                pending = await prisma.garden.update({
-                    where: { id: pending.id },
-                    data: { shareId: generateShareId() },
-                });
-            }
 
             await gardenQueue.add("generate", {
                 gardenId: pending.id,

@@ -17,9 +17,7 @@ function formatDayKey(dayKey) {
     const year = date.getFullYear();
     return `${weekday} ${day}${daySuffix} of ${month} ${year}`;
 }
-// Build a proper OG image from Cloudinary publicId
 function ogFromPublicId(publicId) {
-    // 1200x630, auto-crop + auto format/quality
     return cloudinary.url(publicId, {
         secure: true,
         transformation: [
@@ -28,7 +26,6 @@ function ogFromPublicId(publicId) {
         ],
     });
 }
-/** Mount /share-meta/:shareId (and .json) and normalize the id. */
 export function mountShareMeta(app, prisma) {
     app.get(["/share-meta/:shareId", "/share-meta/:shareId.json"], async (req, res) => {
         const raw = String(req.params.shareId || "");
@@ -39,7 +36,6 @@ export function mountShareMeta(app, prisma) {
                 period: true,
                 periodKey: true,
                 publicId: true, // <— NEW
-                imageUrl: true, // legacy fallback
                 summary: true,
                 user: { select: { displayName: true } },
             },
@@ -51,7 +47,7 @@ export function mountShareMeta(app, prisma) {
         const baseTitle = `Mood Garden — ${formattedDate}`;
         const title = owner ? `${owner}’s ${baseTitle}` : baseTitle;
         const desc = garden.summary || "A garden grown from my day.";
-        const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.imageUrl || null;
+        const img = garden.publicId ? ogFromPublicId(garden.publicId) : garden.publicId || null;
         const viewLink = `${APP_ORIGIN}`;
         res.json({ owner, title, desc, img, period: garden.period, periodKey: garden.periodKey, formattedDate, viewLink });
     });

@@ -112,16 +112,12 @@ export async function createYearlyGardenIfNeeded(user: UserLike) {
       period: "YEAR",
       periodKey: lastCompletedYearKey,
       status: "PENDING",
-
-      // keep plaintext for now (you can blank this later if you want)
-      summary,
-
+      summary:"",
       // encrypted payload
       summaryIv: encryptedSummary.iv,
       summaryAuthTag: encryptedSummary.authTag,
       summaryCiphertext: encryptedSummary.ciphertext,
       summaryKeyVersion: encryptedSummary.keyVersion,
-
       progress: 0,
       shareId: generateShareId(),
     },

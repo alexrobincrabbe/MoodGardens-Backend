@@ -58,7 +58,7 @@ export async function createWeeklyGardenIfNeeded(user) {
             period: "WEEK",
             periodKey: lastCompletedWeekKey,
             status: "PENDING",
-            summary,
+            summary: "",
             summaryIv: encryptedSummary.iv,
             summaryAuthTag: encryptedSummary.authTag,
             summaryCiphertext: encryptedSummary.ciphertext,
@@ -137,15 +137,21 @@ export async function backfillWeeklyGardensForUser(user, options) {
             continue;
         }
         console.log("[WEEKLY-BACKFILL]", userId, "summarising week", weekKey, "…");
-        // 🔐 BUGFIX: summarise the entries for THIS week, not the whole list
+        // summarise the entries for THIS week
         const summary = await summariseWeek(prisma, userId, entriesInWeek);
+        // 🔐 encrypt weekly summary for storage
+        const encryptedSummary = await encryptTextForUser(prisma, userId, summary);
         const weekGarden = await prisma.garden.create({
             data: {
                 userId,
                 period: "WEEK",
                 periodKey: weekKey,
                 status: "PENDING",
-                summary,
+                summary: "",
+                summaryIv: encryptedSummary.iv,
+                summaryAuthTag: encryptedSummary.authTag,
+                summaryCiphertext: encryptedSummary.ciphertext,
+                summaryKeyVersion: encryptedSummary.keyVersion,
                 progress: 0,
                 shareId: generateShareId(),
             },

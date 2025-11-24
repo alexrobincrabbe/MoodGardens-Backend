@@ -239,7 +239,6 @@ const CREATURES_MATRIX: Record<string, Creature> = {
     affirmation: CREATURES.DOVES,
     validation: CREATURES.OWL,
     confidence: CREATURES.PEACOCK,
-    BEETLES: "beetles",
 }
 
 // ───────────────────────────────────────────────

@@ -107,16 +107,12 @@ export async function createMonthlyGardenIfNeeded(user: UserLike) {
       period: "MONTH",
       periodKey: lastCompletedMonthKey,
       status: "PENDING",
-
-      // keep plaintext for now, like daily + weekly
-      summary: monthSummary,
-
+      summary: "",
       // encrypted payload
       summaryIv: encryptedSummary.iv,
       summaryAuthTag: encryptedSummary.authTag,
       summaryCiphertext: encryptedSummary.ciphertext,
       summaryKeyVersion: encryptedSummary.keyVersion,
-
       progress: 0,
       shareId: generateShareId(),
     },

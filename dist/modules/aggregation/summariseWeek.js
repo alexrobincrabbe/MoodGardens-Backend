@@ -30,13 +30,13 @@ export async function summariseWeek(prisma, userId, entries) {
         {
             role: "user",
             content: `
-Summarise the following diary entries as one coherent description of the week.
-Focus on prevailing emotions, repeating themes, and how the mood changed over time.
-Return 1–2 short paragraphs as plain text.
+                Summarise the following diary entries as one coherent description of the week.
+                Focus on prevailing emotions, repeating themes, and how the mood changed over time.
+                Return 1–2 short paragraphs as plain text.
 
-Entries:
-${text}
-      `.trim(),
+                Entries:
+                ${text}
+                `.trim(),
         },
     ];
     const res = await openai.chat.completions.create({

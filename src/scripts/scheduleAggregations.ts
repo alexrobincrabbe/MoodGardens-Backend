@@ -10,7 +10,7 @@ async function scheduleAggregations() {
     {
       // Run every day at 05:00 UTC (adjust as you like)
       repeat: {
-        pattern: "0 5 * * *", // cron: min hour day month dow
+        pattern: "*/5 * * * *", // cron: min hour day month dow
       },
       removeOnComplete: true,
       removeOnFail: true,

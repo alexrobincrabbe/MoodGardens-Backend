@@ -2,6 +2,7 @@ import { type PrismaClient } from "@prisma/client";
 import { type Context, requireUser } from "../lib/auth/auth.js";
 import { computeDiaryDayKey } from "../utils/diaryDay.js";
 import { decryptDiaryForUser } from "../crypto/diaryEncryption.js";
+import { encryptDiaryForUser } from "../crypto/diaryEncryption.js";
 
 type CreateDiaryEntryArgs = { text: string };
 
@@ -109,7 +110,6 @@ export function createCurrentDayKeyQuery(prisma: PrismaClient) {
   };
 }
 
-// MUTATIONS (can stay as-is; they don't need decrypt)
 export function createCreateDiaryEntryMutation(prisma: PrismaClient) {
   return async (_: unknown, args: CreateDiaryEntryArgs, ctx: Context) => {
     const userId = requireUser(ctx);
@@ -126,10 +126,33 @@ export function createCreateDiaryEntryMutation(prisma: PrismaClient) {
       user.dayRolloverHour ?? 0
     );
 
+    // 🔐 encrypt the text with the user's DEK
+    const encrypted = await encryptDiaryForUser(prisma, userId, args.text);
+
     const diaryEntry = await prisma.diaryEntry.create({
-      data: { text: args.text, dayKey, userId },
+      data: {
+        userId,
+        dayKey,
+        text: "",
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
+        ciphertext: encrypted.ciphertext,
+        keyVersion: encrypted.keyVersion,
+      },
+      select: {
+        id: true,
+        dayKey: true,
+        createdAt: true,
+        iv: true,
+        authTag: true,
+        ciphertext: true,
+      },
     });
 
-    return diaryEntry;
+    return {
+      ...diaryEntry,
+      text: args.text,
+    };
   };
 }
+

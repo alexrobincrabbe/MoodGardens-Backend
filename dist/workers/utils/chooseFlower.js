@@ -231,7 +231,6 @@ const CREATURES_MATRIX = {
     affirmation: CREATURES.DOVES,
     validation: CREATURES.OWL,
     confidence: CREATURES.PEACOCK,
-    BEETLES: "beetles",
 };
 // ───────────────────────────────────────────────
 // 3. Selector: from secondary_emotions → Flower[]

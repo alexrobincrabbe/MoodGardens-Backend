@@ -5,7 +5,7 @@ async function scheduleAggregations() {
     await aggregationQueue.add("run-aggregations", {}, {
         // Run every day at 05:00 UTC (adjust as you like)
         repeat: {
-            pattern: "*/5 * * * *", // every 15 minutes
+            pattern: "*/5 * * * *", // cron: min hour day month dow
         },
         removeOnComplete: true,
         removeOnFail: true,

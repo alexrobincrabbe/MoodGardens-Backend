@@ -26,8 +26,6 @@ export async function buildPromptFromDiary(args: {
     console.log("[buildPromptFromDiary] mood analysis result:", JSON.stringify(mood, null, 2));
     const style = selectStylePack(mood.valence as Valence, mood.earnestness as Seriousness);
 
-
-
     const renormalisedIntensity = (i: number) =>
         i <= 4 ? 1 :
             5 <= i && i <= 6 ? 2 :

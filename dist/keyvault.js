@@ -1,10 +1,7 @@
 // src/keyvault.ts
 import crypto from "crypto";
-import { DefaultAzureCredential } from "@azure/identity";
+import { ClientSecretCredential } from "@azure/identity";
 import { KeyClient, CryptographyClient, } from "@azure/keyvault-keys";
-/**
- * Env helpers
- */
 function mustGetEnv(name) {
     const v = process.env[name];
     if (!v)
@@ -13,29 +10,28 @@ function mustGetEnv(name) {
 }
 // e.g. "https://<your-vault-name>.vault.azure.net"
 const KEY_VAULT_URL = mustGetEnv("AZURE_KEY_VAULT_URL");
-// Name of your RSA key stored in Key Vault (e.g., "journal-keK")
+// Name of your RSA key in the vault, e.g. "diary-key"
 const KEY_VAULT_KEY_NAME = mustGetEnv("KEY_VAULT_KEY_NAME");
-// Azure credential chain: Managed Identity in Azure, or env vars locally.
-const credential = new DefaultAzureCredential();
+// 🔐 service principal creds (same ones you put on Heroku)
+const AZURE_TENANT_ID = mustGetEnv("AZURE_TENANT_ID");
+const AZURE_CLIENT_ID = mustGetEnv("AZURE_CLIENT_ID");
+const AZURE_CLIENT_SECRET = mustGetEnv("AZURE_CLIENT_SECRET");
+const credential = new ClientSecretCredential(AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET);
 let cachedCrypto = null;
 async function getCryptoClient() {
     if (cachedCrypto)
         return cachedCrypto;
     const keyClient = new KeyClient(KEY_VAULT_URL, credential);
-    const key = await keyClient.getKey(KEY_VAULT_KEY_NAME); // loads latest version
+    const key = await keyClient.getKey(KEY_VAULT_KEY_NAME); // latest version
     if (!key.id)
         throw new Error("Key Vault key has no id");
     const client = new CryptographyClient(key.id, credential);
     cachedCrypto = { client, keyId: key.id };
     return cachedCrypto;
 }
-/**
- * Create a fresh per-user DEK (32 bytes) and wrap it with the Key Vault key.
- * Store the returned EDEK in your DB (UserKey.edek) and use plaintextKey only in-memory.
- */
 export async function generateUserDEK(userId) {
     const { client, keyId } = await getCryptoClient();
-    const dek = crypto.randomBytes(32); // AES-256 content key
+    const dek = crypto.randomBytes(32); // AES-256 DEK
     const wrapped = await client.wrapKey("RSA-OAEP-256", dek);
     return {
         plaintextKey: dek,
@@ -43,10 +39,6 @@ export async function generateUserDEK(userId) {
         keyId,
     };
 }
-/**
- * Unwrap a stored EDEK back to a plaintext DEK for this request.
- * (No encryption-context concept in Key Vault; rely on RBAC/auditing.)
- */
 export async function decryptEDEK(edek) {
     const { client } = await getCryptoClient();
     const unwrapped = await client.unwrapKey("RSA-OAEP-256", edek);

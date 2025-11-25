@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { createRegisterMutation, createLoginMutation, createLoginWithGoogleMutation, createLogoutMutation } from "./auth.js";
-import { createCreateDiaryEntryMutation } from "./diaryEntries.js";
-import { createUpdateUserSettingsMutation, createUpdateUserProfileMutation, createChangePasswordMutation } from "./userProfile.js";
-import { createRequestGenerateGardenMutation } from "./gardens.js";
+import { createRegisterMutation, createLoginMutation, createLoginWithGoogleMutation, createLogoutMutation } from "../modules/users/resolvers/auth.js";
+import { createCreateDiaryEntryMutation } from "../modules/diary/resolvers/diaryEntries.js";
+import { createUpdateUserSettingsMutation, createUpdateUserProfileMutation, createChangePasswordMutation } from "../modules/users/resolvers/userProfile.js";
+import { createRequestGenerateGardenMutation } from "../modules/gardens/resolvers/gardens.js";
 
 type UpdateDisplayNameArgs = { displayName: string };
 
@@ -16,15 +16,12 @@ export function createMutations(prisma: PrismaClient) {
             logout: createLogoutMutation(prisma),
             //Diary Entries
             createDiaryEntry: createCreateDiaryEntryMutation(prisma),
-
+            //Gardens
+            requestGenerateGarden: createRequestGenerateGardenMutation(prisma),
             //User Profile
             updateUserSettings: createUpdateUserSettingsMutation(prisma),
             updateUserProfile: createUpdateUserProfileMutation(prisma),
             changePassword: createChangePasswordMutation(prisma),
-
-            //Gardens
-            requestGenerateGarden: createRequestGenerateGardenMutation(prisma),
-
         }
     )
 }

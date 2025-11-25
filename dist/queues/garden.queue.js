@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { redis } from "../redis.js";
+import { redis } from "../lib/redis.js";
 export const gardenQueue = new Queue("garden-generate", {
     connection: redis,
 });

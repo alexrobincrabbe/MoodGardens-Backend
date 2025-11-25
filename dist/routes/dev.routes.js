@@ -1,10 +1,9 @@
 // apps/api/src/routes/dev.routes.ts
 import { Router } from "express";
-import { prisma } from "../prismaClient.js";
-import { createWeeklyGardenIfNeeded } from "../modules/aggregation/weeklyAggregation.js";
-import { createMonthlyGardenIfNeeded } from "../modules/aggregation/monthlyAggregation.js";
-import { createYearlyGardenIfNeeded } from "../modules/aggregation/yearlyAggregation.js";
-import { backfillWeeklyGardensForUser } from "../modules/aggregation/weeklyAggregation.js";
+import { prisma } from "../lib/prismaClient.js";
+import { createWeeklyGardenIfNeeded, backfillWeeklyGardensForUser } from "../modules/aggregation/services/weeklyAggregation.js";
+import { createMonthlyGardenIfNeeded } from "../modules/aggregation/services/monthlyAggregation.js";
+import { createYearlyGardenIfNeeded } from "../modules/aggregation/services/yearlyAggregation.js";
 export const devRouter = Router();
 devRouter.post("/test-weekly-garden", async (req, res) => {
     try {

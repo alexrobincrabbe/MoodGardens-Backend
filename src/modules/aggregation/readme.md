@@ -1,0 +1,1 @@
+Handles the logic for generating weekly, monthly and yearly summaries/gardens. These are scheduled to run at the end of each period.

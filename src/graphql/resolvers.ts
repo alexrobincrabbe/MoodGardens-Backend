@@ -1,6 +1,6 @@
 import GraphQLJSON from "graphql-type-json";
-import { mapGardenOut } from "../lib/gardens.js";
-import { requireUser, type Context } from "../lib/auth/auth.js";
+import { mapGardenOut } from "../modules/gardens/lib/gardens.js";
+import { requireUser, type Context } from "../modules/users/lib/auth.js";
 import { PrismaClient, GardenPeriod } from "@prisma/client";
 import { createQueries } from "./queries.js";
 import { createMutations } from "./mutations.js";

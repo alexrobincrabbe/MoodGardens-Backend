@@ -5,7 +5,7 @@ import AdminJSExpress from "@adminjs/express";
 import { Database, Resource } from "@adminjs/prisma";
 import { Prisma, PrismaClient } from "@prisma/client";
 import session from "express-session";
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../lib/prismaClient.js";
 
 AdminJS.registerAdapter({ Database, Resource });
 

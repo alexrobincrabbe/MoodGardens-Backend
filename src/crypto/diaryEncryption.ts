@@ -1,7 +1,6 @@
-// src/crypto/diaryEncryption.ts
 import crypto from "crypto";
 import type { PrismaClient, DiaryEntry } from "@prisma/client";
-import { generateUserDEK, decryptEDEK } from "../keyvault.js";
+import { generateUserDEK, decryptEDEK } from "./keyvault.js";
 
 type UserDEK = {
   key: Buffer; // 32-byte AES-256 key

@@ -1,11 +1,10 @@
-// apps/api/src/index.ts
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
 import jwt from "jsonwebtoken";
-import { prisma } from "./prismaClient.js";
+import { prisma } from "./lib/prismaClient.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
@@ -42,7 +41,7 @@ async function main() {
         resolvers: createResolvers(prisma),
     });
     await server.start();
-    // Auth
+    // Auth Middleware
     app.use("/graphql", expressMiddleware(server, {
         context: async ({ req, res }) => {
             let userId = null;

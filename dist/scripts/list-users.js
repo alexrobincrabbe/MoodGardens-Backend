@@ -1,5 +1,5 @@
 // scripts/list-users.ts
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../lib/prismaClient.js";
 async function main() {
     try {
         const users = await prisma.user.findMany({

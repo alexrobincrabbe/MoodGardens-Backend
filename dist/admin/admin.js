@@ -2,7 +2,7 @@ import AdminJS from "adminjs";
 import AdminJSExpress from "@adminjs/express";
 import { Database, Resource } from "@adminjs/prisma";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../prismaClient.js";
+import { prisma } from "../lib/prismaClient.js";
 AdminJS.registerAdapter({ Database, Resource });
 export async function setupAdminPanel(app) {
     // ---- Get DMMF safely ----

@@ -1,6 +1,5 @@
-// src/crypto/diaryEncryption.ts
 import crypto from "crypto";
-import { generateUserDEK, decryptEDEK } from "../keyvault.js";
+import { generateUserDEK, decryptEDEK } from "./keyvault.js";
 export async function getOrCreateUserDEK(prisma, userId) {
     const existing = await prisma.userKey.findUnique({
         where: { userId },

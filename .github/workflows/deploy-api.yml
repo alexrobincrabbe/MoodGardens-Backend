@@ -29,7 +29,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: .              # change if your Dockerfile is in a subfolder
           push: true
           tags: |
             ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
@@ -40,14 +40,32 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          resourceGroup: rg-mood-gardens     
-          containerAppName: mood-gardens-api
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          resourceGroup: rg-mood-gardens
-          containerAppName: mood-gardens-api
-          imageToDeploy: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Install containerapp extension
+        run: |
+          az extension add --name containerapp --yes || az extension update --name containerapp
+
+      - name: Debug container app access
+        run: |
+          echo "Current Azure account:"
+          az account show -o table
+
+          echo ""
+          echo "Listing resource groups:"
+          az group list -o table
+
+          echo ""
+          echo "Trying to show the container app:"
+          az containerapp show \
+            --name mood-gardens-api \
+            --resource-group mood-gardens-rg \
+            -o table
+
+      - name: Deploy to Azure Container Apps (az CLI)
+        run: |
+          set -e
+          echo "Deploying image: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          az containerapp update \
+            --name mood-gardens-api \
+            --resource-group mood-gardens-rg \
+            --image ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --output table

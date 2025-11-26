@@ -26,7 +26,7 @@ type Context = {
 
 async function main() {
     const app = express();
-    console.log("checking CI/CD pipeline -2nd run")
+    console.log("checking CI/CD pipeline -3nd run")
     await setupAggregationJobs();
 
     // Log requests

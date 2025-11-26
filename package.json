@@ -8,7 +8,7 @@
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "worker:garden": "node dist/workers/garden.worker.js",
+    "worker:garden": "node dist/modules/gardens/workers/garden.worker.js",
     "worker:aggregation": "node dist/workers/aggregation.worker.js",
     "backfill:diary": "node dist/scripts/backfillDiaryEncryption.js",
     "backfill:garden-summaries": "node -r dotenv/config dist/scripts/backfillGardenSummaries.js",

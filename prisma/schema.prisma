@@ -63,21 +63,32 @@ model Garden {
   id        String       @id @default(uuid())
   period    GardenPeriod @default(DAY)
   periodKey String
-  status    GardenStatus @default(READY)
+  // Image data
+  shareId   String?      @unique
   imageUrl  String?
   publicId  String?      @db.VarChar(512)
-
-  // NEW: encrypted summary support
+  // ── Generation metadata ───────────────
+  valence             String   @default("")
+  primaryEmotion      String   @default("")
+  secondaryEmotions   String[] @default([])
+  intensity           Int      @default(0)
+  normalisedIntensity Int      @default(0)
+  intensityBand       String   @default("")
+  archetype           String   @default("")
+  earnestness         String   @default("")
+  prompt              String   @default("")
+  //encrypted summary support
   summary             String?
   summaryIv           Bytes?
   summaryAuthTag      Bytes?
   summaryCiphertext   Bytes?
   summaryKeyVersion   Int?     @default(1)
 
+  status    GardenStatus @default(READY)
   progress  Int          @default(0)
+
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-  shareId   String?      @unique
   userId    String
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 

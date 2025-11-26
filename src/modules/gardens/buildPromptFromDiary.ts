@@ -6,9 +6,10 @@ import { selectStylePack } from "./services/chooseStyle.js";
 import { selectArchetype } from "./services/chooseArchitype.js";
 import { selectWeather } from "./services/chooseWeather.js";
 import { selectTree } from "./services/chooseTree.js";
-import {  selectFlowers } from "./services/chooseFlowers.js";
+import { selectFlowers } from "./services/chooseFlowers.js";
 import { selectCreatures } from "./services/chooseCreatures.js";
-
+import { type Garden } from "@prisma/client";
+import { prisma } from "../../lib/prismaClient.js";
 
 const CAMERAS = [
     "wide bird’s-eye view", "isometric view", "eye-level view",
@@ -20,6 +21,7 @@ const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 export async function buildPromptFromDiary(args: {
     diaryText?: string | null;
     openai: OpenAI;
+    garden: Garden;
 }): Promise<{ prompt: string }> {
     const { diaryText, openai } = args;
     const userText = (diaryText ?? "").trim();
@@ -91,5 +93,23 @@ export async function buildPromptFromDiary(args: {
     `.trim();
 
 
+    const garden = args.garden
+    const secondaryEmotions = Array.isArray(mood.secondary_emotions)
+        ? mood.secondary_emotions
+        : [];
+    const updatedGarden = await prisma.garden.update({
+        where: { id: garden.id },
+        data: {
+            valence: mood.valence,
+            primaryEmotion: mood.primary_emotion,
+            secondaryEmotions: secondaryEmotions,
+            intensity: mood.intensity,
+            normalisedIntensity: adjustedIntensity,
+            intensityBand: intensityBand,
+            archetype: archetype,
+            earnestness: mood.earnestness,
+            prompt: prompt,
+        }
+    })
     return { prompt };
 }

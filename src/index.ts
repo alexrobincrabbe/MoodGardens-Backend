@@ -37,7 +37,8 @@ async function main() {
 
     // Trust proxy (needed for cookies behind Azure)
     app.set("trust proxy", 1);
-
+    // Admin panel
+    setupAdminPanel(app);
     // ---- CORS FIRST ----
     app.use(cors(corsOptions));
 
@@ -57,8 +58,7 @@ async function main() {
     // Dev routes
     app.use("/dev", devRouter);
 
-    // Admin panel
-    setupAdminPanel(app);
+ 
 
     // Public JSON for /share/:id
     mountShareMeta(app, prisma);

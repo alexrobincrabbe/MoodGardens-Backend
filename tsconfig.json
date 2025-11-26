@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "target": "ES2020",
     "module": "Node16",
     "moduleResolution": "node16",
@@ -11,6 +13,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src"],
+  "include": ["src", "src/admin/components.ts"],
   "exclude": ["node_modules"]
 }

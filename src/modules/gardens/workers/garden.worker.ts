@@ -1,14 +1,13 @@
 // apps/api/src/workers/garden.worker.ts
 import { Worker } from "bullmq";
 import { redis } from "../../../lib/redis.js";
-import { GardenStatus } from "@prisma/client";
+import { GardenStatus, type Garden } from "@prisma/client";
 import { prisma } from "../../../lib/prismaClient.js";
 import type { GenerateGardenJob } from "../../../queues/garden.queue.js";
 import OpenAI from "openai";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { buildPromptFromDiary } from "../buildPromptFromDiary.js"; // now async
 import { decryptDiaryForUser } from "../../../crypto/diaryEncryption.js";
-import { type Garden } from "@prisma/client";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -101,7 +100,6 @@ async function fetchAndDecryptDiaryOrSummary(garden: Garden) {
             return sourceText = null;
         }
     } else {
-        // WEEK / MONTH / YEAR: use the garden.summary that the aggregator created
         return sourceText = garden.summary ?? null;
     }
 }
@@ -161,6 +159,7 @@ async function analyseText({ garden, sourceText }: { garden: Garden, sourceText:
                 ? sourceText
                 : "This diary entry was empty.",
         openai,
+        garden,
     });
     return prompt
 }

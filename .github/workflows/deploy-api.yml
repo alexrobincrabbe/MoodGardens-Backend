@@ -44,6 +44,22 @@ jobs:
         run: |
           az extension add --name containerapp --yes || az extension update --name containerapp
 
+      - name: Debug container app access
+        run: |
+          echo "Current Azure account:"
+          az account show -o table
+
+          echo ""
+          echo "Listing resource groups:"
+          az group list -o table
+
+          echo ""
+          echo "Trying to show the container app:"
+          az containerapp show \
+            --name mood-gardens-api \
+            --resource-group rg-mood-gardens \
+            -o table
+
       - name: Deploy to Azure Container Apps (az CLI)
         run: |
           set -e

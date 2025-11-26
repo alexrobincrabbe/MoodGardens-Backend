@@ -45,4 +45,9 @@ jobs:
         with:
           resourceGroup: rg-mood-gardens     
           containerAppName: mood-gardens-api
-          imageToDeploy: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: rg-mood-gardens
+          containerAppName: mood-gardens-api
+          imageToDeploy: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

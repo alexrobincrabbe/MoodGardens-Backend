@@ -1,7 +1,6 @@
 import "dotenv/config";
 import type cors from "cors";
 
-//CORS
 const normalizeOrigin = (s?: string) => (s ?? "").replace(/\/+$/, "");
 export const APP_ORIGIN = normalizeOrigin(process.env.APP_ORIGIN || "http://localhost:5173");
 const rawCors = process.env.CORS_ORIGINS || APP_ORIGIN;
@@ -32,8 +31,6 @@ export const joinOrigin = (origin: string, path: string) =>
 
 //AUTH
 export const JWT_SECRET = process.env.JWT_SECRET ?? "dev-insecure-secret";
-export const COOKIE_SECURE = process.env.COOKIE_SECURE === "true"; 
-export const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 //PORT
 export const PORT = Number(process.env.PORT ?? 4000);

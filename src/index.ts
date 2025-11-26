@@ -25,35 +25,50 @@ type Context = {
 };
 
 async function main() {
-    //Start app
     const app = express();
-    //set up jobs
+    console.log("checking CI/CD pipeline")
     await setupAggregationJobs();
-    //Log requests
+
+    // Log requests
     app.use((req, _res, next) => {
         console.log("[API]", req.method, req.url);
         next();
     });
-    //app settings
+
+    // Trust proxy (needed for cookies behind Azure)
     app.set("trust proxy", 1);
+
+    // ---- CORS FIRST ----
+    app.use(cors(corsOptions));
+
+    // Explicitly ensure credentials header is always set
+    app.use((req, res, next) => {
+        res.header("Access-Control-Allow-Credentials", "true");
+        next();
+    });
+
+    // Handle preflight
+    app.options("*", cors(corsOptions));
+    // ---- END CORS BLOCK ----
+
     app.use(cookieParser());
     app.use(express.json());
+
     // Dev routes
     app.use("/dev", devRouter);
-    // Mount admin panel
+
+    // Admin panel
     setupAdminPanel(app);
-    //CORS
-    app.use(cors(corsOptions));
-    app.options("*", cors(corsOptions));
-    // Public JSON used by the frontend /share/:id page
+
+    // Public JSON for /share/:id
     mountShareMeta(app, prisma);
-    // Create Apollo/graphQL server
+
     const server = new ApolloServer({
         typeDefs,
         resolvers: createResolvers(prisma),
     });
     await server.start();
-    // Auth Middleware
+
     app.use(
         "/graphql",
         expressMiddleware(server, {
@@ -72,14 +87,14 @@ async function main() {
             },
         })
     );
-    // Health check
+
     app.get("/healthz", (_req, res) => res.send("ok"));
-    // Catch errors
+
     app.use((req, res) => {
         console.log("[API] 404", req.method, req.url);
         res.status(404).json({ error: "not_found", path: req.url });
     });
-    // listen on port
+
     app.listen(PORT, () => {
         console.log(`GraphQL on http://0.0.0.0:${PORT}/graphql`);
     });

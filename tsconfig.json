@@ -9,8 +9,8 @@
     "strict": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "types": ["node"]           // 👈 override any inherited "types"
+    "types": ["node"]
   },
   "include": ["src"],
-  "exclude": ["node_modules"]   // 👈 do NOT compile stuff from node_modules
+  "exclude": ["node_modules"]
 }

@@ -1,33 +1,33 @@
-// apps/api/src/lib/auth.ts
 import jwt from "jsonwebtoken";
 import type express from "express";
-import { JWT_SECRET, COOKIE_SECURE, COOKIE_DOMAIN } from "../../../config/settings.js";
+import { JWT_SECRET } from "../../../config/settings.js";
 import { GraphQLError } from "graphql";
+import type { Response } from "express";
 
 
 export function signJwt(payload: object) {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
 }
 
-export function setAuthCookie(res: express.Response, token: string) {
-    res.cookie("mg_jwt", token, {
-        httpOnly: true,
-        sameSite: COOKIE_SECURE ? "none" : "lax",
-        secure: COOKIE_SECURE,
-        domain: COOKIE_DOMAIN,
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/",
-    });
+const isProd = process.env.NODE_ENV === "production";
+
+const authCookieOptions = {
+  httpOnly: true,
+  secure: isProd,                  
+  sameSite: isProd ? "none" : "lax",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  path: "/",
+} as const;
+
+export function setAuthCookie(res: Response, token: string) {
+  res.cookie("mg_jwt", token, authCookieOptions);
 }
 
-export function clearAuthCookie(res: express.Response) {
-    res.clearCookie("mg_jwt", {
-        httpOnly: true,
-        sameSite: COOKIE_SECURE ? "none" : "lax",
-        secure: COOKIE_SECURE,
-        domain: COOKIE_DOMAIN,
-        path: "/",
-    });
+export function clearAuthCookie(res: Response) {
+  res.clearCookie("mg_jwt", {
+    ...authCookieOptions,
+    maxAge: 0,
+  });
 }
 
 export type Context = { userId: string | null; req: express.Request; res: express.Response };

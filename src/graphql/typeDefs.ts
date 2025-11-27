@@ -77,7 +77,9 @@ export const typeDefs = `#graphql
     updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
     updateUserProfile(email: String!, displayName: String!): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!
-    requestPasswordReset(email: String!): Boolean!
     loginWithGoogle(idToken: String!): AuthPayload!
+    requestPasswordReset(email: String!): Boolean!
+    resetPassword(token: String!, newPassword: String!): Boolean!
+    verifyEmail(token: String!): AuthPayload!
   }
 `;

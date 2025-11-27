@@ -8,6 +8,7 @@ import { prisma } from "./lib/prismaClient.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
+import {authRouter} from "./routes/auth.js"; // export default router
 import {
     JWT_SECRET,
     PORT,
@@ -54,11 +55,9 @@ async function main() {
 
     app.use(cookieParser());
     app.use(express.json());
-
+    app.use("/auth", authRouter);
     // Dev routes
     app.use("/dev", devRouter);
-
- 
 
     // Public JSON for /share/:id
     mountShareMeta(app, prisma);

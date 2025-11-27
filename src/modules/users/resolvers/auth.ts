@@ -9,6 +9,8 @@ import {
     type Context,
 } from "../lib/auth.js";
 import { verifyGoogleIdToken } from "../lib/verify-google-auth-token.js";
+import { sendVerificationEmail } from "../emailFlows.js";
+
 
 type RegisterArgs = { email: string; displayName: string; password: string };
 type LoginArgs = { email: string; password: string };
@@ -28,28 +30,71 @@ export function createUserQuery(prisma: PrismaClient) {
 
 //MUTATIONS
 //-------------------------------------------------------------------------------
-export function createRegisterMutation(prisma: PrismaClient) {
-    return (
-        async (_: unknown, args: RegisterArgs, ctx: Context) => {
-            const existing = await prisma.user.findUnique({
-                where: { email: args.email },
-            });
-            if (existing) throw new Error("Email already in use");
+function isValidEmail(email: string) {
+    // very simple but good enough
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-            const passwordHash = await bcrypt.hash(args.password, 12);
-            const user = await prisma.user.create({
-                data: {
-                    email: args.email,
-                    passwordHash,
-                    displayName: args.displayName,
-                },
-                select: UserPublicFields,
-            });
-            const token = signJwt({ sub: user.id });
-            setAuthCookie(ctx.res, token);
-            return { user };
+export function createRegisterMutation(prisma: PrismaClient) {
+    return async (_: unknown, args: RegisterArgs, ctx: Context) => {
+        const email = args.email?.trim();
+        const password = args.password ?? "";
+        const displayName = args.displayName?.trim();
+
+        // Basic presence validation
+        if (!email || !password || !displayName) {
+            throw new GraphQLError(
+                "Email, password and display name are required.",
+                { extensions: { code: "BAD_USER_INPUT" } }
+            );
         }
-    )
+
+        // Email format
+        if (!isValidEmail(email)) {
+            throw new GraphQLError("Please enter a valid email address.", {
+                extensions: { code: "BAD_USER_INPUT" },
+            });
+        }
+
+        // Password length (tweak as you like)
+        if (password.length < 8) {
+            throw new GraphQLError(
+                "Password must be at least 8 characters long.",
+                { extensions: { code: "BAD_USER_INPUT" } }
+            );
+        }
+
+        // Email already in use
+        const existing = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existing) {
+            throw new GraphQLError("Email already in use.", {
+                extensions: { code: "EMAIL_IN_USE" },
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+
+        const user = await prisma.user.create({
+            data: {
+                email,
+                passwordHash,
+                displayName,
+                emailVerified: false,
+            },
+            select: UserPublicFields,
+        });
+
+        // send verification email (you already had this)
+        sendVerificationEmail(user).catch((err) =>
+            console.error("[signup] failed to send verification email:", err)
+        );
+
+        // NOTE: no login here
+        return { user };
+    };
 }
 
 export function createLoginMutation(prisma: PrismaClient) {
@@ -63,6 +108,7 @@ export function createLoginMutation(prisma: PrismaClient) {
                     createdAt: true,
                     displayName: true,
                     passwordHash: true,
+                    emailVerified: true,
                 },
             });
 
@@ -79,6 +125,12 @@ export function createLoginMutation(prisma: PrismaClient) {
                 });
             }
 
+            if (!u.emailVerified) {
+                throw new GraphQLError("Please verify your email before logging in.", {
+                    extensions: { code: "EMAIL_NOT_VERIFIED" },
+                });
+            }
+
             const user = {
                 id: u.id,
                 email: u.email,
@@ -88,7 +140,7 @@ export function createLoginMutation(prisma: PrismaClient) {
 
             const token = signJwt({ sub: user.id });
             setAuthCookie(ctx.res, token);
-            return { user };
+            return { user, token };
         }
     )
 }
@@ -121,7 +173,7 @@ export function createLoginWithGoogleMutation(prisma: PrismaClient) {
                     // Link Google to existing account
                     user = await prisma.user.update({
                         where: { id: existingByEmail.id },
-                        data: { googleId },
+                        data: { googleId, emailVerified: true },
                         select: UserPublicFields,
                     });
                 } else {
@@ -131,6 +183,7 @@ export function createLoginWithGoogleMutation(prisma: PrismaClient) {
                             email,
                             displayName,
                             googleId,
+                            emailVerified: true,
                         },
                         select: UserPublicFields,
                     });
@@ -138,16 +191,16 @@ export function createLoginWithGoogleMutation(prisma: PrismaClient) {
             }
             const token = signJwt({ sub: user.id });
             setAuthCookie(ctx.res, token);
-            return { user };
+            return { user, token };
         }
     )
 }
 
 export function createLogoutMutation(prisma: PrismaClient) {
-    return(
+    return (
         async (_: unknown, __: unknown, ctx: Context) => {
-                clearAuthCookie(ctx.res);
-                return true;
-            }
+            clearAuthCookie(ctx.res);
+            return true;
+        }
     )
 }

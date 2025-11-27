@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
+"include": ["src"],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -14,7 +15,10 @@
     "backfill:garden-summaries": "node -r dotenv/config dist/scripts/backfillGardenSummaries.js",
     "backfill:remove-diary-text": "node -r dotenv/config dist/scripts/backfillRemoveDiaryText.js",
     "backfill:remove-garden-summaries": "node -r dotenv/config dist/scripts/backfillRemoveGardenSummaries.js",
-    "schedule:aggregations": "node -r dotenv/config dist/scripts/scheduleAggregations.js"
+    "schedule:aggregations": "node -r dotenv/config dist/scripts/scheduleAggregations.js",
+    "test:mailgun": "node -r dotenv/config dist/scripts/testMailgun.js",
+    "test:mailgun-2": "node -r dotenv/config dist/scripts/mailgun.js"
+
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",
@@ -25,6 +29,7 @@
     "@azure/keyvault-keys": "^4.10.0",
     "@prisma/client": "^5.22.0",
     "adminjs": "^7.8.17",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.58.2",
     "cloudinary": "^2.7.0",
@@ -33,18 +38,21 @@
     "dotenv": "^17.2.2",
     "express": "^4.21.2",
     "express-session": "^1.18.2",
+    "form-data": "^4.0.5",
     "google-auth-library": "^10.5.0",
     "graphql": "^16.9.0",
     "graphql-type-json": "^0.3.2",
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.2",
     "luxon": "^3.7.2",
+    "mailgun.js": "^12.2.0",
     "openai": "^5.17.0",
     "prisma": "^5.22.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/babel-core": "^6.25.10",
+    "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",

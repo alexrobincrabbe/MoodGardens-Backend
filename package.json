@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
-"include": ["src"],
+  "include": [
+    "src"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -18,7 +20,6 @@
     "schedule:aggregations": "node -r dotenv/config dist/scripts/scheduleAggregations.js",
     "test:mailgun": "node -r dotenv/config dist/scripts/testMailgun.js",
     "test:mailgun-2": "node -r dotenv/config dist/scripts/mailgun.js"
-
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",
@@ -48,6 +49,7 @@
     "mailgun.js": "^12.2.0",
     "openai": "^5.17.0",
     "prisma": "^5.22.0",
+    "stripe": "^20.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

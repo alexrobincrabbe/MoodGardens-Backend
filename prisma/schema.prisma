@@ -50,6 +50,10 @@ model User {
     notifyWeeklyGarden  Boolean @default(true)
     notifyMonthlyGarden Boolean @default(true)
     notifyYearlyGarden  Boolean @default(true)
+
+    stripeCustomerId String?
+    isPremium        Boolean @default(false)
+    premiumSince     DateTime?
 }
 
 model DiaryEntry {

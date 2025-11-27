@@ -8,7 +8,7 @@ import { prisma } from "./lib/prismaClient.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
-import {authRouter} from "./routes/auth.js"; // export default router
+import { authRouter } from "./routes/auth.js"; // export default router
 import {
     JWT_SECRET,
     PORT,
@@ -17,6 +17,7 @@ import {
 import { setupAggregationJobs } from "./bootstrapAggregationJobs.js";
 import { devRouter } from "./routes/dev.routes.js";
 import { setupAdminPanel } from "./admin/admin.js";
+import { stripe } from "./lib/stripe.js";
 
 
 type Context = {
@@ -58,6 +59,44 @@ async function main() {
     app.use("/auth", authRouter);
     // Dev routes
     app.use("/dev", devRouter);
+
+    // Simple test route to confirm Stripe works
+    app.get("/stripe-test", async (req, res) => {
+        try {
+            const products = await stripe.products.list({ limit: 1 });
+            res.json({
+                ok: true,
+                sampleProductCount: products.data.length,
+            });
+        } catch (err) {
+            console.error("[stripe-test] error:", err);
+            res.status(500).json({ ok: false, error: "Stripe test failed" });
+        }
+    });
+    app.post(
+        "/billing/webhook",
+        express.raw({ type: "application/json" }),
+        async (req, res) => {
+            const sig = req.headers["stripe-signature"];
+
+            let event;
+            try {
+                event = stripe.webhooks.constructEvent(
+                    req.body,
+                    sig!,
+                    process.env.STRIPE_WEBHOOK_SECRET!
+                );
+            } catch (err) {
+                console.error("⚠️ Webhook signature verification failed");
+                return res.sendStatus(400);
+            }
+
+            console.log("Received event:", event.type);
+
+            res.sendStatus(200);
+        }
+    );
+
 
     // Public JSON for /share/:id
     mountShareMeta(app, prisma);

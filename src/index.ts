@@ -18,7 +18,9 @@ import { setupAggregationJobs } from "./bootstrapAggregationJobs.js";
 import { devRouter } from "./routes/dev.routes.js";
 import { setupAdminPanel } from "./admin/admin.js";
 import { stripe } from "./lib/stripe.js";
+import { billingRouter } from "./routes/billing.routes.js";
 
+import type Stripe from "stripe";
 
 type Context = {
     userId: string | null;
@@ -28,6 +30,109 @@ type Context = {
 
 async function main() {
     const app = express();
+    app.post(
+        "/billing/webhook",
+        express.raw({ type: "application/json" }),  // (1) webhook needs raw body
+        async (req, res) => {
+            const sig = req.headers["stripe-signature"];
+
+            let event;
+
+            try {
+                // (2) Construct the Stripe event from raw body + signature + secret
+                event = stripe.webhooks.constructEvent(
+                    req.body,
+                    sig as string,
+                    process.env.STRIPE_WEBHOOK_SECRET!
+                );
+            } catch (err: any) {
+                console.error("⚠️ Webhook signature verification failed:", err.message);
+                return res.status(400).send(`Webhook Error: ${err.message}`);
+            }
+
+            // ------------------------------------------------------------
+            // ⭐ THIS is the part I meant:
+            // “In your /billing/webhook route, after constructing event”
+            // ------------------------------------------------------------
+
+            try {
+                switch (event.type) {
+                    case "customer.subscription.created":
+                    case "customer.subscription.updated": {
+                        const subscription = event.data.object;
+                        const customer = subscription.customer;
+
+                        const customerId =
+                            typeof customer === "string"
+                                ? customer
+                                : customer.id; // works for Customer & DeletedCustomer
+                        if (!customerId) {
+                            console.warn("[billing] subscription without customerId?", subscription.id);
+                            break;
+                        }
+                        // Find the user in your database with this customer ID
+                        const user = await prisma.user.findFirst({
+                            where: { stripeCustomerId: customerId },
+                        });
+
+                        if (user) {
+                            const isActive =
+                                subscription.status === "active" ||
+                                subscription.status === "trialing";
+
+                            await prisma.user.update({
+                                where: { id: user.id },
+                                data: {
+                                    isPremium: isActive,
+                                    premiumSince: isActive ? new Date() : user.premiumSince,
+                                },
+                            });
+
+                            console.log("[billing] Subscription updated for:", user.email);
+                        }
+                        break;
+                    }
+
+                    case "customer.subscription.deleted": {
+                        const subscription = event.data.object;
+                        const customer = subscription.customer;
+                        const customerId =
+                            typeof customer === "string" ? customer : customer.id;
+
+                        if (!customerId) break;
+
+                        const user = await prisma.user.findFirst({
+                            where: { stripeCustomerId: customerId },
+                        });
+
+                        if (user) {
+                            await prisma.user.update({
+                                where: { id: user.id },
+                                data: {
+                                    isPremium: false,
+                                    premiumSince: null,
+                                },
+                            });
+
+                            console.log("[billing] Subscription cancelled for:", user.email);
+                        }
+                        break;
+                    }
+
+                    default:
+                        console.log("🔔 Event received:", event.type);
+                        break;
+                }
+            } catch (err) {
+                console.error("[billing] Error handling webhook event:", err);
+                return res.status(500).send("Webhook handler failed");
+            }
+
+            // Stripe needs a 2xx to confirm receipt
+            res.json({ received: true });
+        }
+    );
+
     console.log("checking CI/CD pipeline -3nd run")
     await setupAggregationJobs();
 
@@ -56,46 +161,11 @@ async function main() {
 
     app.use(cookieParser());
     app.use(express.json());
+    app.use("/billing", billingRouter);
     app.use("/auth", authRouter);
     // Dev routes
     app.use("/dev", devRouter);
 
-    // Simple test route to confirm Stripe works
-    app.get("/stripe-test", async (req, res) => {
-        try {
-            const products = await stripe.products.list({ limit: 1 });
-            res.json({
-                ok: true,
-                sampleProductCount: products.data.length,
-            });
-        } catch (err) {
-            console.error("[stripe-test] error:", err);
-            res.status(500).json({ ok: false, error: "Stripe test failed" });
-        }
-    });
-    app.post(
-        "/billing/webhook",
-        express.raw({ type: "application/json" }),
-        async (req, res) => {
-            const sig = req.headers["stripe-signature"];
-
-            let event;
-            try {
-                event = stripe.webhooks.constructEvent(
-                    req.body,
-                    sig!,
-                    process.env.STRIPE_WEBHOOK_SECRET!
-                );
-            } catch (err) {
-                console.error("⚠️ Webhook signature verification failed");
-                return res.sendStatus(400);
-            }
-
-            console.log("Received event:", event.type);
-
-            res.sendStatus(200);
-        }
-    );
 
 
     // Public JSON for /share/:id

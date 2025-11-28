@@ -15,6 +15,7 @@ export const typeDefs = `#graphql
   type User {
     id: ID!
     email: String!
+    isPremium: Boolean
     createdAt: String!
     displayName: String!
     timezone: String!

@@ -1,6 +1,7 @@
 export const UserPublicFields = {
     id: true,
     email: true,
+    isPremium: true,
     displayName: true,
     createdAt: true,
     timezone: true,

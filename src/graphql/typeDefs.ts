@@ -55,6 +55,7 @@ export const typeDefs = `#graphql
     updatedAt: String!
   }
 
+
   type AuthPayload {
     user: User!
   }
@@ -74,7 +75,7 @@ export const typeDefs = `#graphql
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
     createDiaryEntry(text: String!): DiaryEntry!
-    requestGenerateGarden(period: GardenPeriod!, periodKey: String): Garden!
+    requestGenerateGarden(period: GardenPeriod!, periodKey: String, gardenType:String): Garden!
     updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
     updateUserProfile(email: String!, displayName: String!): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!

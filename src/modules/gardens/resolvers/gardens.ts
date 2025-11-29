@@ -2,6 +2,7 @@ import {
     type PrismaClient,
     GardenPeriod,
     GardenStatus,
+    GardenType
 } from "@prisma/client";
 import { type Context, requireUser } from "../../users/lib/auth.js";
 import { mapGardenOut, generateShareId } from "../lib/gardens.js";
@@ -11,7 +12,7 @@ import { decryptTextForUser } from "../../../crypto/diaryEncryption.js";
 
 type GardenQueryArgs = { period: GardenPeriod; periodKey: string };
 type GardenPeriodQueryArgs = { period: GardenPeriod };
-type GardenArgs = { period: GardenPeriod; periodKey: string };
+type GardenArgs = { period: GardenPeriod; periodKey: string, gardenType:GardenType };
 
 // 🔐 Helper: decrypt a single garden's summary if encrypted
 async function decryptGardenSummaryIfNeeded(
@@ -163,6 +164,7 @@ export function createRequestGenerateGardenMutation(prisma: PrismaClient) {
                     userId,
                     period: args.period,
                     periodKey,
+                    type:args.gardenType,
                     status: GardenStatus.PENDING,
                     summary: "Your garden is growing…",
                     progress: 0,

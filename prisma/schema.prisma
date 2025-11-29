@@ -21,6 +21,12 @@ enum GardenStatus {
     FAILED
 }
 
+enum GardenType {
+    CLASSIC
+    UNDERWATER
+    GALAXY
+}
+
 model Token {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id],  onDelete: Cascade )
@@ -79,6 +85,7 @@ model Garden {
   id        String       @id @default(uuid())
   period    GardenPeriod @default(DAY)
   periodKey String
+  type GardenType @default(CLASSIC)
   // Image data
   shareId   String?      @unique
   imageUrl  String?

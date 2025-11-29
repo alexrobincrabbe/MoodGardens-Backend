@@ -127,6 +127,7 @@ export async function setupAdminPanel(app: Express) {
                     listProperties: [
                         "createdAt",
                         "user",
+                        "type",
                         "period",
                         "periodKey",
                         "primaryEmotion",
@@ -139,6 +140,7 @@ export async function setupAdminPanel(app: Express) {
                         "prompt",
                         "user",
                         "id",
+                        "type",
                         "createdAt",
                         "valence",
                         "primaryEmotion",

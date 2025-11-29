@@ -11,25 +11,47 @@ import { selectCreatures } from "./services/chooseCreatures.js";
 import { type Garden } from "@prisma/client";
 import { prisma } from "../../lib/prismaClient.js";
 
-const CAMERAS = [
-    "wide bird’s-eye view", "isometric view", "eye-level view",
-    "low angle looking up through foliage", "close-up of a small section of the garden",
-];
+export const CAMERA_OPTIONS = {
+    CLASSIC: [
+        "wide bird’s-eye view",
+        "isometric view",
+        "eye-level view",
+        "low angle looking up through foliage",
+        "close-up of a small section of the garden",
+    ],
+    UNDERWATER: [
+        "perspective looking up toward the surface",
+        "close-up of drifting seaweed",
+        "wide reef view",
+        "low angle from the ocean floor looking upward",
+        "mid-water perspective among fish",
+    ],
+    GALAXY: [
+        "deep-space wide angle",
+        "nebula close-up with swirling gases",
+        "view from inside a star cluster",
+        "low angle from the surface of a tiny planet",
+        "galactic isometric view",
+    ],
+} as const;
 
-const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+export type GardenType = keyof typeof CAMERA_OPTIONS;
+
+export function pick<T>(arr: readonly T[]): T {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 export async function buildPromptFromDiary(args: {
     diaryText?: string | null;
     openai: OpenAI;
     garden: Garden;
 }): Promise<{ prompt: string }> {
-    const { diaryText, openai } = args;
+    const { diaryText, openai, garden } = args;
     const userText = (diaryText ?? "").trim();
-
-    const mood: MoodAnalysis = await analyseDiaryMood(openai, userText);
+    const type = garden.type
+    const mood: MoodAnalysis = await analyseDiaryMood(openai, userText, type);
     console.log("mood analysis result:", JSON.stringify(mood, null, 2));
     const style = selectStylePack(mood.valence as Valence, mood.earnestness as Seriousness);
-
     const renormalisedIntensity = (i: number) =>
         i <= 4 ? 1 :
             5 <= i && i <= 6 ? 2 :
@@ -46,7 +68,9 @@ export async function buildPromptFromDiary(args: {
 
 
 
-    const camera = pick(CAMERAS);
+    const cameraOptions = CAMERA_OPTIONS[garden.type as GardenType];
+    const camera = pick(cameraOptions);
+
     let adjustedIntensity
     mood.primary_emotion === "boredom"
         ? adjustedIntensity = renormalisedBoredomIntensity(mood.intensity)
@@ -58,14 +82,15 @@ export async function buildPromptFromDiary(args: {
                 : "medium";
 
     const archetype = selectArchetype(
+        garden.type as GardenType,
         mood.primary_emotion as PrimaryEmotion,
         intensityBand
     );
-    const weather = selectWeather(mood.primary_emotion, adjustedIntensity);
+    const weather = selectWeather(garden.type as GardenType, mood.primary_emotion, adjustedIntensity);
     const allEmotions = [mood.primary_emotion, ...mood.secondary_emotions].join(", ");
-    const tree = selectTree(mood.primary_emotion);
-    const flowers = selectFlowers(mood.secondary_emotions);
-    const creatures = selectCreatures(mood.secondary_emotions)
+    const tree = selectTree(garden.type as GardenType, mood.primary_emotion);
+    const flowers = selectFlowers(garden.type as GardenType, mood.secondary_emotions);
+    const creatures = selectCreatures(garden.type as GardenType, mood.secondary_emotions)
     const treeLine =
         tree === "ivy"
             ? "Trailing ivy winds through the garden."
@@ -93,7 +118,7 @@ export async function buildPromptFromDiary(args: {
     `.trim();
 
 
-    const garden = args.garden
+
     const secondaryEmotions = Array.isArray(mood.secondary_emotions)
         ? mood.secondary_emotions
         : [];

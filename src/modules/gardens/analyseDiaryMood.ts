@@ -2,7 +2,16 @@
 import type OpenAI from "openai";
 import { MoodSchema, type MoodAnalysis, PRIMARY_EMOTIONS, VALENCES, SERIOSITIES } from "./mood.types.js";
 
-export async function analyseDiaryMood(openai: OpenAI, diaryText: string): Promise<MoodAnalysis> {
+export async function analyseDiaryMood(openai: OpenAI, diaryText: string, type:string): Promise<MoodAnalysis> {
+    let basicTask
+    if (type === "CLASSIC"){
+        basicTask = 'You are an assistant that analyses diary entries to inspire the creation of symbolic "mood garden" images.'
+    }else if (type === "UNDERWATER"){
+        basicTask = 'You are an assistant that analyses diary entries to inspire the creation of symbolic "underwater mood garden" images.'
+    }else if (type === "GALAXY"){
+    }else{
+        throw new Error("Wrong or missing garden type")
+    }
     const res = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         temperature: 0.4,
@@ -10,7 +19,7 @@ export async function analyseDiaryMood(openai: OpenAI, diaryText: string): Promi
             {
                 role: "system",
                 content: `
-                    You are an assistant that analyses diary entries to inspire the creation of symbolic "mood garden" images.
+                    ${basicTask}
                     Your task is to interpret the emotional tone, atmosphere, and symbolism expressed in the text, and describe it as structured data in JSON format.
                     DEFINITIONS:
                         • intensity — how strongly the primary_emotion is experienced, on a 1–10 scale:

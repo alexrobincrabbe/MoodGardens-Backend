@@ -9,6 +9,7 @@ export async function analyseDiaryMood(openai: OpenAI, diaryText: string, type:s
     }else if (type === "UNDERWATER"){
         basicTask = 'You are an assistant that analyses diary entries to inspire the creation of symbolic "underwater mood garden" images.'
     }else if (type === "GALAXY"){
+        basicTask = 'You are an assistant that analyses diary entries to inspire the creation of symbolic "mood galaxy" images.'
     }else{
         throw new Error("Wrong or missing garden type")
     }

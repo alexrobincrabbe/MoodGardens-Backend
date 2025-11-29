@@ -3,11 +3,11 @@ import type OpenAI from "openai";
 import { analyseDiaryMood } from "./analyseDiaryMood.js";
 import { type MoodAnalysis, type Valence, type Seriousness, type PrimaryEmotion, type Intensity, NormalisedIntensity } from "./mood.types.js";
 import { selectStylePack } from "./services/chooseStyle.js";
-import { selectArchetype } from "./services/chooseArchitype.js";
-import { selectWeather } from "./services/chooseWeather.js";
-import { selectTree } from "./services/chooseTree.js";
+import { selectArchetype } from "./services/chooseArchetype/chooseArchitype.js";
+import { selectWeather } from "./services/chooseWeather/chooseWeather.js";
+import { selectTree } from "./services/chooseTree/chooseTree.js";
 import { selectFlowers } from "./services/chooseFlowers.js";
-import { selectCreatures } from "./services/chooseCreatures.js";
+import { selectCreatures } from "./services/chooseCreatures/chooseCreatures.js";
 import { type Garden } from "@prisma/client";
 import { prisma } from "../../lib/prismaClient.js";
 
@@ -27,11 +27,11 @@ export const CAMERA_OPTIONS = {
         "mid-water perspective among fish",
     ],
     GALAXY: [
-        "deep-space wide angle",
-        "nebula close-up with swirling gases",
-        "view from inside a star cluster",
-        "low angle from the surface of a tiny planet",
-        "galactic isometric view",
+        "deep-space wide angle view of the galaxy",
+        "view of the galaxy through a spaceship window",
+        "hubble space telescope view of the galaxy",
+        "low angle from the surface of a tiny planet looking up at the galaxy",
+        "isometric view of the galaxy",
     ],
 } as const;
 
@@ -95,21 +95,21 @@ export async function buildPromptFromDiary(args: {
         tree === "ivy"
             ? "Trailing ivy winds through the garden."
             : `Include this type of tree in the garden: ${tree}.`;
-
+    const marineLine = `include this marine animal: ${tree}`
+    const galaxLine = `include this celestial body: ${tree}`
     const prompt = `
         ${style.label} illustration of a ${archetype}, seen from a ${camera}.
-        Weather: ${weather}.
-
+        ${type==="CLASSIC" ? "Weather" : ""}${type==="UNDERWATER"? "ambience":""}${type==="GALAXY"?"ambience":""}
+        : ${weather}.
         The scene visually represents:
         "${mood.short_theme}"
         Mood blend: ${allEmotions}.
-
-        Use a color palette inspired by:
-        ${mood.color_palette.join(", ")}
-
-        ${treeLine}
-        include these flowers: ${flowers.join(", ")}
-        include these creatures: ${creatures.join(", ")}
+        Use a color palette inspired by:${mood.color_palette.join(", ")}
+        ${type==="CLASSIC" ? treeLine : ""}${type==="UNDERWATER"? marineLine:""}${type==="GALAXY"? galaxLine:""}
+        ${type==="CLASSIC" ? "include these flowers:" : ""}${type==="UNDERWATER"? "include these marine plants":""}${type==="GALAXY"?"include these elements in space":""}:
+        ${flowers.join(", ")}
+        ${type==="CLASSIC" ? "include these creatures:" : ""}${type==="UNDERWATER"? "include these fish":""}${type==="GALAXY"?"include these celestial objects":""}
+        ${creatures.join(", ")}
         Include these symbolic elements:${mood.symbolic_elements.join(", ")}.
 
         Allow surreal / whimsical combinations.

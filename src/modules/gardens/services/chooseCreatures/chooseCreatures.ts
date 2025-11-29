@@ -1,4 +1,6 @@
 import { type GardenType } from "@prisma/client";
+import { SPACE_SPRITES } from "./spaceSprites.js";
+
 
 export const CREATURES = {
     BEETLES: "beetles",
@@ -185,76 +187,7 @@ const CREATURES_MATRIX_BY_TYPE: Record<
     confidence: "brightly coloured fish darting boldly through open water",
   },
 
-  GALAXY: {
-    // POSITIVE
-    joy: "swarm of tiny starlight sprites flitting like cosmic fireflies",
-    love: "pair of glowing star-motes orbiting each other closely",
-    hope: "small cluster of newborn stars flickering into brightness",
-    excitement: "spray of micro-comets streaking in quick arcs",
-    serenity: "slow-moving dust motes of light drifting in gentle orbits",
-    creativity: "tiny colour-shifting nebula sprites painting the dark",
-    lust: "deep red spark-sprites swirling around each other",
-    resilience: "dense cluster of tough little dwarf stars burning steadily",
-    silliness: "bouncing star-puffs hopping around like cosmic popcorn",
-
-    // NEUTRAL
-    curiosity: "wandering light-motes probing the edges of the scene",
-    awe: "thick cloud of luminous particles swirling like a miniature galaxy",
-    contemplative: "few slow, thoughtful sparks circling a quiet point of light",
-
-    // NEGATIVE
-    confusion: "erratic flickers of light zipping in conflicting directions",
-    boredom: "dim, drab specks drifting without sparkle",
-    embarrassment: "small pink-tinted glimmers hiding behind darker dust",
-    sadness: "fading starlight motes sinking into the dark",
-    anxiety: "nervous, jittering sparks blinking rapidly on and off",
-    anger: "sharp-edged red sparks spitting in short bursts",
-    guilt: "ashen cinder-motes circling a dim star remnant",
-    loneliness: "one tiny point of light hovering in a vast shadow",
-    disappointment: "weak, half-lit sparks that never quite ignite",
-    jealousy: "greenish motes watching brighter stars from a murky patch",
-
-    // SECONDARY EMOTIONS
-    nostalgia: "soft golden flickers echoing like memories across the dark",
-    relief: "small sparks settling gently back into steady orbits",
-    calm: "few slow, steady motes gliding in smooth circles",
-    contentment: "cluster of warm, amber glows huddled together peacefully",
-    pride: "bright pinpoint star standing a little higher than the rest",
-    gratitude: "tiny sparks leaning into the glow of a larger star",
-    affection: "two close star-sprites circling in a small shared halo",
-    tenderness: "little lights resting inside a soft pink nebula puff",
-    longing: "dim spark stretching a faint trail toward a bright galaxy",
-    melancholy: "blue-tinted motes wandering slowly through the void",
-    regret: "flickering lights fading after a brief flare",
-    frustration: "sparks repeatedly flaring and failing to catch fully",
-    resentment: "low green flickers lurking at the edge of a bright cluster",
-    irritation: "small, sharp flashes snapping in short stabs of light",
-    shame: "dim sparks hiding behind a curtain of darker dust",
-    uncertainty: "erratic glows drifting without a clear path",
-    insecurity: "tiny lights clinging closely to a larger, overshadowing star",
-    fear: "trembling star-specks shrinking away from a looming shadow",
-    worry: "flickering points hovering close to a dark rift",
-    stress: "cluster of jittery lights vibrating at high frequency",
-    tension: "taut line of star-points pulled between two forces",
-    restlessness: "small sparks pacing back and forth along invisible tracks",
-    anticipation: "tiny motes gathering near a brightening star",
-    surprise: "sudden pop of new starlet flaring into existence",
-    inspiration: "shooting micro-comets sketching bright lines across the dark",
-    motivation: "focused beam of tiny lights streaming in one direction",
-    determination: "resolute spark burning steadily against surrounding blackness",
-    discouragement: "weakening glow shrinking down to a faint ember",
-    emptiness: "barely-there dust of light suspended in vast emptiness",
-    peacefulness: "few gentle points of light breathing in a slow rhythm",
-    comfort: "cluster of warm glows huddling together like a small hearth",
-    warmth: "soft orange dust cloud wrapping small sparks in glow",
-    admiration: "ring of small lights circling a bright central star",
-    compassion: "soft blue glows leaning toward a fading ember",
-    sympathy: "pair of dim lights drifting close in shared orbit",
-    isolation: "single spark floating far from any constellation",
-    affirmation: "small sparks lighting up in response to a central beacon",
-    validation: "a dim mote brightening as other lights turn toward it",
-    confidence: "tiny star blazing far brighter than its size suggests",
-  },
+  GALAXY: SPACE_SPRITES,
 };
 
 export function selectCreatures(

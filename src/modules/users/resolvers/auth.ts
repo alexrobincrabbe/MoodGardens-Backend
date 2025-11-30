@@ -100,6 +100,9 @@ export function createRegisterMutation(prisma: PrismaClient) {
 export function createLoginMutation(prisma: PrismaClient) {
     return (
         async (_: unknown, args: LoginArgs, ctx: Context) => {
+            console.log("[login] attempt from", ctx.req.headers["user-agent"]);
+            console.log("[login] email arg:", JSON.stringify(args.email));
+
             const u = await prisma.user.findUnique({
                 where: { email: args.email },
                 select: {
@@ -110,6 +113,13 @@ export function createLoginMutation(prisma: PrismaClient) {
                     passwordHash: true,
                     emailVerified: true,
                 },
+            });
+
+            console.log("[login] found user:", u && {
+                id: u.id,
+                email: u.email,
+                emailVerified: u.emailVerified,
+                hasPassword: !!u.passwordHash,
             });
 
             if (!u || !u.passwordHash) {

@@ -33,11 +33,20 @@ export function clearAuthCookie(res: Response) {
 export type Context = { userId: string | null; req: express.Request; res: express.Response };
 
 
-/**
- * Shared helper: get userId from request (cookie-based)
- */
 export function getUserIdFromRequest(req: express.Request): string | null {
-  const token = (req as any).cookies?.mg_jwt as string | undefined;
+  // 1) Prefer Authorization: Bearer <token>  (for mobile / API clients)
+  const authHeader = req.headers.authorization;
+  let token: string | undefined;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice("Bearer ".length).trim() || undefined;
+  }
+
+  // 2) Fallback to cookie (for web browser clients)
+  if (!token) {
+    token = (req as any).cookies?.mg_jwt as string | undefined;
+  }
+
   if (!token) return null;
 
   try {
@@ -51,6 +60,7 @@ export function getUserIdFromRequest(req: express.Request): string | null {
     return null;
   }
 }
+
 
 export function requireUser(ctx: Context): string {
     if (!ctx.userId) {

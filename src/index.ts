@@ -3,14 +3,12 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@apollo/server/express4";
-import jwt from "jsonwebtoken";
 import { prisma } from "./lib/prismaClient.js";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { createResolvers } from "./graphql/resolvers.js";
 import { mountShareMeta } from "./routes/shareMeta.js";
 import { authRouter } from "./routes/auth.js"; // export default router
 import {
-    JWT_SECRET,
     PORT,
     corsOptions,
 } from "./config/settings.js";
@@ -19,14 +17,10 @@ import { devRouter } from "./routes/dev.routes.js";
 import { setupAdminPanel } from "./admin/admin.js";
 import { stripe } from "./lib/stripe.js";
 import { billingRouter } from "./routes/billing.routes.js";
+import { getUserIdFromRequest, type Context } from "./modules/users/lib/auth.js";
 
 import type Stripe from "stripe";
 
-type Context = {
-    userId: string | null;
-    req: express.Request;
-    res: express.Response;
-};
 
 async function main() {
     const app = express();
@@ -181,16 +175,7 @@ async function main() {
         "/graphql",
         expressMiddleware(server, {
             context: async ({ req, res }): Promise<Context> => {
-                let userId: string | null = null;
-                const token = req.cookies?.["mg_jwt"];
-                if (token) {
-                    try {
-                        const decoded = jwt.verify(token, JWT_SECRET) as { sub?: string };
-                        userId = decoded?.sub ?? null;
-                    } catch {
-                        userId = null;
-                    }
-                }
+                const userId = getUserIdFromRequest(req);
                 return { userId, req, res };
             },
         })

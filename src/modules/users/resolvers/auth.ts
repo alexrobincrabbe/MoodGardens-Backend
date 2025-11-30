@@ -129,6 +129,8 @@ export function createLoginMutation(prisma: PrismaClient) {
             }
 
             const ok = await bcrypt.compare(args.password, u.passwordHash);
+            console.log("[login] bcrypt.compare =", ok);
+
             if (!ok) {
                 throw new GraphQLError("Invalid credentials", {
                     extensions: { code: "UNAUTHENTICATED" },

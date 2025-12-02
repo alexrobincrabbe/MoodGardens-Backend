@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { PrismaClient, DiaryEntry } from "@prisma/client";
+import type { PrismaClient, DiaryEntry, Garden } from "@prisma/client";
 import { generateUserDEK, decryptEDEK } from "./keyvault.js";
 
 type UserDEK = {
@@ -112,4 +112,16 @@ export async function decryptDiaryForUser(
   entry: Pick<DiaryEntry, "iv" | "authTag" | "ciphertext">
 ): Promise<string | null> {
   return decryptTextForUser(prisma, userId, entry);
+}
+
+export async function decryptGardenSummaryForUser(
+  prisma: PrismaClient,
+  userId: string,
+  garden: Pick<Garden, "summaryIv" | "summaryAuthTag" | "summaryCiphertext">
+): Promise<string | null> {
+  return decryptTextForUser(prisma, userId, {
+    iv: garden.summaryIv,
+    authTag: garden.summaryAuthTag,
+    ciphertext: garden.summaryCiphertext,
+  });
 }

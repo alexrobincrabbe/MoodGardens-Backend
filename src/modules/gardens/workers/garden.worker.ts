@@ -7,7 +7,7 @@ import type { GenerateGardenJob } from "../../../queues/garden.queue.js";
 import OpenAI from "openai";
 import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { buildPromptFromDiary } from "../buildPromptFromDiary.js"; // now async
-import { decryptDiaryForUser } from "../../../crypto/diaryEncryption.js";
+import { decryptDiaryForUser, decryptGardenSummaryForUser } from "../../../crypto/diaryEncryption.js";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -100,7 +100,17 @@ async function fetchAndDecryptDiaryOrSummary(garden: Garden) {
             return sourceText = null;
         }
     } else {
-        return sourceText = garden.summary ?? null;
+
+        const decrypted = await decryptGardenSummaryForUser(
+                    prisma,
+                    garden.userId,
+                    garden,
+        );
+        let sourceText
+        if (decrypted){
+            sourceText = (decrypted && decrypted.trim().length > 0)? decrypted : null
+        }
+        return sourceText;
     }
 }
 

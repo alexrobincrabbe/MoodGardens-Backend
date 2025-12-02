@@ -184,16 +184,14 @@ export const UNDERWATER_ARCHETYPES = {
     // NEGATIVE
     confusion: {
         low: [
-            "forking sand trails around scattered rocks",
-            "misleading bubble streams crossing each other",
+            "underwater garden with forking sand trails around scattered rocks",
         ],
         medium: [
-            "tilted coral formations with odd angles",
-            "crisscrossing kelp corridors obscuring the view",
+            "underwater garden with plant elements obscuring the view",
         ],
         high: [
-            "dense coral maze with warped shapes",
-            "distorted canyon garden with swirling silt clouds",
+            "underwater dense coral maze with warped shapes",
+            "underwater garden with rock formation in a question mark",
         ],
     },
 

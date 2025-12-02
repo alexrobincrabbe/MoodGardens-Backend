@@ -3,7 +3,7 @@ import type OpenAI from "openai";
 import { analyseDiaryMood } from "./analyseDiaryMood.js";
 import { type MoodAnalysis, type Valence, type Seriousness, type PrimaryEmotion, type Intensity, NormalisedIntensity } from "./mood.types.js";
 import { selectStylePack } from "./services/chooseStyle.js";
-import { selectArchetype } from "./services/chooseArchetype/chooseArchitype.js";
+import { selectArchetype } from "./services/chooseArchetype/chooseArchetype.js";
 import { selectWeather } from "./services/chooseWeather/chooseWeather.js";
 import { selectTree } from "./services/chooseTree/chooseTree.js";
 import { selectFlowers } from "./services/chooseFlowers.js";
@@ -28,7 +28,7 @@ export const CAMERA_OPTIONS = {
     ],
     GALAXY: [
         "deep-space wide angle view of the galaxy",
-        "view of the galaxy through a spaceship window",
+        "view of the galaxy from a God's eye view",
         "hubble space telescope view of the galaxy",
         "low angle from the surface of a tiny planet looking up at the galaxy",
         "isometric view of the galaxy",

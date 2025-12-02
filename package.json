@@ -12,7 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "worker:garden": "node dist/modules/gardens/workers/garden.worker.js",
-    "worker:aggregation": "node dist/workers/aggregation.worker.js",
+    "worker:aggregation": "node dist/modules/aggregation/workers/aggregation.worker.js",
     "backfill:diary": "node dist/scripts/backfillDiaryEncryption.js",
     "backfill:garden-summaries": "node -r dotenv/config dist/scripts/backfillGardenSummaries.js",
     "backfill:remove-diary-text": "node -r dotenv/config dist/scripts/backfillRemoveDiaryText.js",

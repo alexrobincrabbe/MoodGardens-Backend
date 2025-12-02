@@ -21,7 +21,7 @@ export const CAMERA_OPTIONS = {
     ],
     UNDERWATER: [
         "perspective looking up toward the surface",
-        "close-up of drifting seaweed",
+        "looking down through the water surface",
         "wide reef view",
         "low angle from the ocean floor looking upward",
         "mid-water perspective among fish",
@@ -98,8 +98,8 @@ export async function buildPromptFromDiary(args: {
     const marineLine = `include this marine animal: ${tree}`
     const galaxLine = `include this celestial body: ${tree}`
     const prompt = `
-        ${style.label} illustration of a ${archetype}, seen from a ${camera}.
-        ${type==="CLASSIC" ? "Weather" : ""}${type==="UNDERWATER"? "ambience":""}${type==="GALAXY"?"ambience":""}
+        ${style.label} illustration of ${archetype}, seen from a ${camera}.
+        ${type==="CLASSIC" ? "Weather" : ""}${type==="UNDERWATER"? "Water conditions":""}${type==="GALAXY"?"ambience":""}
         : ${weather}.
         The scene visually represents:
         "${mood.short_theme}"

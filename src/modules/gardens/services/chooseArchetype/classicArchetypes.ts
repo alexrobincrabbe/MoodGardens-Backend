@@ -3,78 +3,78 @@ export const CLASSIC_ARCHETYPES = {
     // POSITIVE EMOTIONS
     // ─────────────────────────────
     joy: {
-        low: ["light-dappled cottage garden, open wooden gate", "wildflower prairie meadow with mowed path", "traditional well tended lawn and flowerbed garden"],
-        medium: ["tropical garden scene", "quaint English garden", "orchard with wooden bridge"],
-        high: ["paradise garden", "golden-lit Mediterranean garden", "formal garden"],
+        low: ["a light-dappled cottage garden, open wooden gate", "a wildflower prairie meadow with mowed path", "a traditional well tended lawn and flowerbed garden"],
+        medium: ["a tropical garden scene", "a quaint English garden", "an orchard with wooden bridge"],
+        high: ["a paradise garden", "a golden-lit Mediterranean garden", "a formal garden"],
     },
 
     love: {
-        low: ["courtyard garden", "hidden arbor with swirling vines with flowers", "lantern lit beach garden"],
-        medium: ["glowing romantic Japanese garden", "balcony garden with soft arches and fairylights", "ornate succulents garden with dragonflies"],
-        high: ["vertical flower walls, intimate courtyard with heart shaped gate", "lantern lit garden with pond of flowering lily pads", "pergola garden with cascading flowers and fireflies"],
+        low: ["a courtyard garden", "a hidden arbor with swirling vines with flowers", "a lantern lit beach garden"],
+        medium: ["a glowing romantic Japanese garden", "a balcony garden with soft arches and fairylights", "an ornate succulents garden with dragonflies"],
+        high: ["a vertical flower walls, intimate courtyard with heart shaped gate", "a lantern lit garden with pond of flowering lily pads", "pergola garden with cascading flowers and fireflies"],
     },
 
     hope: {
-        low: ["seedling terrace", "candle-lit straight stone garden path with lanterns in the distance", "minimalist spring courtyard garden with open gate"],
-        medium: ["sky view over a lake garden", "mosaic path with multiple directions", "abundant potager garden"],
-        high: ["illuminated circular garden with statues and wishing pond", "fruiting grapevine", "mandala garden"],
+        low: ["a seedling terrace", "a candle-lit straight stone garden path with lanterns in the distance", "a minimalist spring courtyard garden with open gate"],
+        medium: ["a sky view over a lake garden", "a mosaic path with multiple directions", "an abundant potager garden"],
+        high: ["a illuminated circular garden with statues and wishing pond", "a fruiting grapevine", "a mandala garden"],
     },
 
     excitement: {
-        low: ["balls of light, blooming garden", "coastal garden", "Persian garden"],
-        medium: ["lantern festival garden", "colourful hillside terraces", "spring carnival garden"],
-        high: ["firework meadow garden", "blossom swirls garden", "floating celebration garden"],
+        low: ["balls of light, blooming garden", "a coastal garden", "a Persian garden"],
+        medium: ["a lantern festival garden", "a colourful hillside terraces", "a spring carnival garden"],
+        high: ["a firework meadow garden", "a blossom swirls garden", "a floating celebration garden"],
     },
 
     serenity: {
-        low: ["meditative bamboo courtyard", "soft-moss garden with garden ornaments", "minimalist wildflower path garden"],
-        medium: ["zen sand garden", "open-lake terrace with lantern-lit jetty", "calm fountain retreat with stone bridge"],
-        high: ["still-water sanctuary garden with big wide open gates", "sacred serenity garden", "vast open zen expanse garden"],
+        low: ["a meditative bamboo courtyard", "a soft-moss garden with garden ornaments", "a minimalist wildflower path garden"],
+        medium: ["a zen sand garden", "an open-lake terrace with lantern-lit jetty", "a calm fountain retreat with stone bridge"],
+        high: ["a still-water sanctuary garden with big wide open gates", "a sacred serenity garden", "a vast open zen expanse garden"],
     },
 
     creativity: {
-        low: ["asymmetric sketch-garden", "cobbled courtyard garden with well", "garden of scattered shapes"],
-        medium: ["spiral terraced garden", "topiary garden", "pattern-woven hillside garden"],
-        high: ["abstract sculpture garden with bridges and open gates", "surreal multi-layered terrace with colourful winding paths", "tunnel garden with bright open end"],
+        low: ["an asymmetric sketch-garden", "a cobbled courtyard garden with well", "a garden of scattered shapes"],
+        medium: ["a spiral terraced garden", "a topiary garden", "a pattern-woven hillside garden"],
+        high: ["an abstract sculpture garden with bridges and open gates", "a surreal multi-layered terrace with colourful winding paths", "a tunnel garden with bright open end"],
     },
 
     lust: {
-        low: ["cosy love nest garden", "velvet petal courtyard", "hidden archway retreat"],
-        medium: ["twilight-moon garden with moss lawn", "secluded beach", "waterfall garden terraces"],
-        high: ["garden of fertility with butterflies", "fireflies and fire pit garden", "velvet-shadow enclave garden"],
+        low: ["a cosy love nest garden", "a velvet petal courtyard", "a hidden archway retreat"],
+        medium: ["a twilight-moon garden with moss lawn", "a secluded beach", "a waterfall garden terraces"],
+        high: ["a garden of fertility with butterflies", "fireflies and fire pit garden", "a velvet-shadow enclave garden"],
     },
 
     resilience: {
-        low: ["weathered stone courtyard", "herb terrace garden", "steady hillside garden"],
-        medium: ["windswept plateau garden", "endurance garden", "fortified ridge path garden"],
-        high: ["mountain rise garden", "unyielding cliff garden with bridge", "woodland garden with wooden walkway"],
+        low: ["a weathered stone courtyard", "a herb terrace garden", "a steady hillside garden"],
+        medium: ["a windswept plateau garden", "an endurance garden", "a fortified ridge path garden"],
+        high: ["a mountain rise garden", "a unyielding cliff garden with bridge", "a woodland garden with wooden walkway"],
     },
 
     silliness: {
-        low: ["roundabout garden", "playful topiary park", "mushroom ring garden"],
-        medium: ["tiny whimsical gnome garden", "mini hedge maze with coloured glowing balls on stems", "balloon bush meadow"],
-        high: ["upside down garden", "candy-land garden", "bubble greenhouse garden"],
+        low: ["a roundabout garden", "a playful topiary park", "a mushroom ring garden"],
+        medium: ["a tiny whimsical gnome garden", "a mini hedge maze with coloured glowing balls on stems", "a balloon bush meadow"],
+        high: ["a upside down garden", "a candy-land garden", "a bubble greenhouse garden"],
     },
 
     // ─────────────────────────────
     // NEUTRAL EMOTIONS
     // ─────────────────────────────
     curiosity: {
-        low: ["archway of hidden paths with unreadable signs", "peek-through hedge corners", "garden with butterfly house"],
-        medium: ["beehive garden", "puzzle terrace garden", "charbagh garden"],
-        high: ["pretty garden labyrinth", "shifting passage garden", "concept garden"],
+        low: ["a archway of hidden paths with unreadable signs", "a peek-through hedge corners", "a garden with butterfly house"],
+        medium: ["a beehive garden", "a puzzle terrace garden", "a charbagh garden"],
+        high: ["a pretty garden labyrinth", "a shifting passage garden", "a concept garden"],
     },
 
     awe: {
-        low: ["wide-open horizon garden", "grand cliff outlook garden", "tall-arch viewpoint garden"],
-        medium: ["monument terrace garden", "hanging garden", "vaulted arboretum"],
-        high: ["vast celestial garden", "colossal pillar garden", "great expanse sky terrace"],
+        low: ["a wide-open horizon garden", "a grand cliff outlook garden", "a tall-arch viewpoint garden"],
+        medium: ["a monument terrace garden", "a hanging garden", "a vaulted arboretum"],
+        high: ["a vast celestial garden", "a colossal pillar garden", "a great expanse sky terrace"],
     },
 
     contemplative: {
-        low: ["quiet bench garden", "reflected-stone courtyard", "shaded thinking nook"],
-        medium: ["monastic garden walk", "philosopher’s terrace", "still-water reflection court"],
-        high: ["ancient cloister garden", "water garden with flower bridge", "infinite reflection garden"],
+        low: ["a quiet bench garden", "a reflected-stone courtyard", "a shaded thinking nook"],
+        medium: ["a monastic garden walk", "a philosopher’s terrace", "a still-water reflection court"],
+        high: ["an ancient cloister garden", "a water garden with flower bridge", "an infinite reflection garden"],
     },
 
     // ─────────────────────────────

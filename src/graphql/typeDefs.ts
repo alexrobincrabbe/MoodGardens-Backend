@@ -16,6 +16,8 @@ export const typeDefs = `#graphql
     id: ID!
     email: String!
     isPremium: Boolean
+    premiumSince: String
+    regenerateTokens: Int!  # 👈 new field
     createdAt: String!
     displayName: String!
     timezone: String!
@@ -83,5 +85,7 @@ export const typeDefs = `#graphql
     requestPasswordReset(email: String!): Boolean!
     resetPassword(token: String!, newPassword: String!): Boolean!
     verifyEmail(token: String!): AuthPayload!
+    markUserPremiumFromMobile: User!
+    addRegenerateTokensFromMobile(amount: Int!): User!
   }
 `;

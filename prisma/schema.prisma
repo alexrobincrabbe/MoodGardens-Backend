@@ -56,7 +56,7 @@ model User {
     notifyWeeklyGarden  Boolean @default(true)
     notifyMonthlyGarden Boolean @default(true)
     notifyYearlyGarden  Boolean @default(true)
-
+    regenerateTokens Int    @default(3) // 👈 new field
     stripeCustomerId String?
     isPremium        Boolean @default(false)
     premiumSince     DateTime?

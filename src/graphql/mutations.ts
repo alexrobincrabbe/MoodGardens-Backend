@@ -4,6 +4,8 @@ import { createCreateDiaryEntryMutation } from "../modules/diary/resolvers/diary
 import { createUpdateUserSettingsMutation, createUpdateUserProfileMutation, createChangePasswordMutation } from "../modules/users/resolvers/userProfile.js";
 import { createRequestGenerateGardenMutation } from "../modules/gardens/resolvers/gardens.js";
 import { createResetPasswordMutation, createRequestPasswordResetMutation, createVerifyEmailMutation } from "../modules/users/resolvers/mail.js";
+import { createMarkUserPremiumFromMobileMutation, createAddRegenTokensFromMobileMutation } from "../modules/users/resolvers/premium.js";
+
 type UpdateDisplayNameArgs = { displayName: string };
 
 export function createMutations(prisma: PrismaClient) {
@@ -26,6 +28,10 @@ export function createMutations(prisma: PrismaClient) {
             updateUserSettings: createUpdateUserSettingsMutation(prisma),
             updateUserProfile: createUpdateUserProfileMutation(prisma),
             changePassword: createChangePasswordMutation(prisma),
+            //Premium
+            // in createMutations(prisma)
+            markUserPremiumFromMobile: createMarkUserPremiumFromMobileMutation(prisma),
+            addRegenTokensFromMobile: createAddRegenTokensFromMobileMutation(prisma),
         }
     )
 }

@@ -86,6 +86,6 @@ export const typeDefs = `#graphql
     resetPassword(token: String!, newPassword: String!): Boolean!
     verifyEmail(token: String!): AuthPayload!
     markUserPremiumFromMobile: User!
-    addRegenerateTokensFromMobile(amount: Int!): User!
+    addRegenTokensFromMobile(amount: Int!): User!
   }
 `;

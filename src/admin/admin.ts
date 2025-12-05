@@ -64,7 +64,7 @@ export async function setupAdminPanel(app: Express) {
                         direction: "desc",
                     },
                     listProperties: ["email", "createdAt", "id", "emailVerified", "isPremium", "timezone"],
-                    showProperties: ["email", "id", "emailVerified", "isPremium", "createdAt", "displayName","timezone", "dayRolloverHour", "notifyWeeklyGarden"]
+                    showProperties: ["email", "id", "emailVerified", "isPremium", "regenerateTokens", "createdAt", "displayName","timezone", "dayRolloverHour", "notifyWeeklyGarden"]
                 },
             },
 

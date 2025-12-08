@@ -106,9 +106,9 @@ export async function buildPromptFromDiary(args: {
         Mood blend: ${allEmotions}.
         Use a color palette inspired by:${mood.color_palette.join(", ")}
         ${type==="CLASSIC" ? treeLine : ""}${type==="UNDERWATER"? marineLine:""}${type==="GALAXY"? galaxLine:""}
-        ${type==="CLASSIC" ? "include these flowers:" : ""}${type==="UNDERWATER"? "include these marine plants":""}${type==="GALAXY"?"include these elements in space":""}:
+        ${type==="CLASSIC" ? "include these flowers:" : ""}${type==="UNDERWATER"? "include these marine plants:":""}${type==="GALAXY"?"include these elements in space:":""}:
         ${flowers.join(", ")}
-        ${type==="CLASSIC" ? "include these creatures:" : ""}${type==="UNDERWATER"? "include these fish":""}${type==="GALAXY"?"include these celestial objects":""}
+        ${type==="CLASSIC" ? "include these creatures:" : ""}${type==="UNDERWATER"? "include these fish:":""}${type==="GALAXY"?"include these celestial objects:":""}
         ${creatures.join(", ")}
         Include these symbolic elements:${mood.symbolic_elements.join(", ")}.
 
@@ -125,6 +125,7 @@ export async function buildPromptFromDiary(args: {
     const updatedGarden = await prisma.garden.update({
         where: { id: garden.id },
         data: {
+            shortTheme:mood.short_theme,
             valence: mood.valence,
             primaryEmotion: mood.primary_emotion,
             secondaryEmotions: secondaryEmotions,

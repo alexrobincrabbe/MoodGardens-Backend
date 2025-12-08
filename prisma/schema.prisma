@@ -91,6 +91,7 @@ model Garden {
   imageUrl  String?
   publicId  String?      @db.VarChar(512)
   // ── Generation metadata ───────────────
+  shortTheme          String   @default("")
   valence             String   @default("")
   primaryEmotion      String   @default("")
   secondaryEmotions   String[] @default([])

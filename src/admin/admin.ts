@@ -141,6 +141,7 @@ export async function setupAdminPanel(app: Express) {
                         "user",
                         "id",
                         "type",
+                        "shortTheme",
                         "createdAt",
                         "valence",
                         "primaryEmotion",

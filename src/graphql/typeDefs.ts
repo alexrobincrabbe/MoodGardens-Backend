@@ -50,6 +50,7 @@ export const typeDefs = `#graphql
     publicId: String
     palette: JSON
     seedValue: Int!
+    shortTheme: String
     summary: String
     progress: Int!
     shareUrl: String

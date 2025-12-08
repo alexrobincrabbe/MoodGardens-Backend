@@ -19,7 +19,6 @@ export const gardenWorker = new Worker<GenerateGardenJob>(
             const { garden, originalSummary } = await fetchGarden(gardenId)
             const sourceText = await fetchAndDecryptDiaryOrSummary(garden)
             const prompt = await analyseText({ garden, sourceText })
-            console.log(prompt)
             const buffer = await growGarden({ garden, prompt })
             const uploadResult = await uploadGarden({ garden, buffer })
             const finalSummary = await setFinalSummary({ garden, sourceText, originalSummary })

@@ -17,7 +17,8 @@ import { devRouter } from "./routes/dev.routes.js";
 import { setupAdminPanel } from "./admin/admin.js";
 import { stripe } from "./lib/stripe.js";
 import { billingRouter } from "./routes/billing.routes.js";
-import { getUserIdFromRequest, type Context } from "./modules/users/lib/auth.js";
+import { getUserIdFromRequest, type Context } from "./auth/lib/auth.js";
+import { createRateLimitMiddleware } from "./lib/rateLimit.js";
 
 import type Stripe from "stripe";
 
@@ -39,9 +40,10 @@ async function main() {
                     sig as string,
                     process.env.STRIPE_WEBHOOK_SECRET!
                 );
-            } catch (err: any) {
-                console.error("⚠️ Webhook signature verification failed:", err.message);
-                return res.status(400).send(`Webhook Error: ${err.message}`);
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : "Invalid webhook signature";
+                console.error("⚠️ Webhook signature verification failed:", errorMessage);
+                return res.status(400).send(`Webhook Error: ${errorMessage}`);
             }
 
 
@@ -123,7 +125,6 @@ async function main() {
         }
     );
 
-    console.log("checking CI/CD pipeline -3nd run")
     await setupAggregationJobs();
 
     // Log requests
@@ -151,8 +152,25 @@ async function main() {
 
     app.use(cookieParser());
     app.use(express.json());
+    
+    // Rate limiting for auth routes: 10 requests / 10 min and 50 / day per IP
+    const authRateLimit = createRateLimitMiddleware({
+        prefix: "auth",
+        limit: 10,
+        windowSeconds: 10 * 60, // 10 minutes
+        getUserId: () => null, // Always use IP for auth routes
+    });
+    
+    // Daily limit for auth routes (50 / day)
+    const authDailyRateLimit = createRateLimitMiddleware({
+        prefix: "auth:daily",
+        limit: 50,
+        windowSeconds: 24 * 60 * 60, // 24 hours
+        getUserId: () => null,
+    });
+    
+    app.use("/auth", authRateLimit, authDailyRateLimit, authRouter);
     app.use("/billing", billingRouter);
-    app.use("/auth", authRouter);
     // Dev routes
     app.use("/dev", devRouter);
 
@@ -167,8 +185,17 @@ async function main() {
     });
     await server.start();
 
+    // Rate limiting for GraphQL: 100 requests / 15 min per user (fallback IP)
+    const graphqlRateLimit = createRateLimitMiddleware({
+        prefix: "graphql",
+        limit: 100,
+        windowSeconds: 15 * 60, // 15 minutes
+        getUserId: getUserIdFromRequest,
+    });
+    
     app.use(
         "/graphql",
+        graphqlRateLimit,
         expressMiddleware(server, {
             context: async ({ req, res }): Promise<Context> => {
                 const userId = getUserIdFromRequest(req);

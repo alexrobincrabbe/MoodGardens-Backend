@@ -64,7 +64,10 @@ authRouter.post("/register", async (req, res) => {
         return res.status(201).json({ ok: true, message: "User created; verification email sent" });
     } catch (err) {
         console.error("[register] error", err);
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({ 
+            error: "Failed to create account",
+            message: "An error occurred while creating your account. Please try again later."
+        });
     }
 });
 
@@ -88,7 +91,10 @@ authRouter.get("/verify-email", async (req, res) => {
         return res.json({ ok: true, message: "Email verified" });
     } catch (err) {
         console.error("[verify-email] error", err);
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({ 
+            error: "Failed to verify email",
+            message: "An error occurred while verifying your email. Please try again or request a new verification link."
+        });
     }
 });
 
@@ -134,7 +140,10 @@ authRouter.post("/forgot-password", async (req, res) => {
         return res.json({ ok: true, message: "If that email exists, a reset link was sent" });
     } catch (err) {
         console.error("[forgot-password] error", err);
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({ 
+            error: "Failed to send password reset email",
+            message: "An error occurred while processing your request. Please try again later."
+        });
     }
 });
 
@@ -159,6 +168,9 @@ authRouter.post("/reset-password", async (req, res) => {
         return res.json({ ok: true, message: "Password updated" });
     } catch (err) {
         console.error("[reset-password] error", err);
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({ 
+            error: "Failed to reset password",
+            message: "An error occurred while resetting your password. Please try again or request a new reset link."
+        });
     }
 });

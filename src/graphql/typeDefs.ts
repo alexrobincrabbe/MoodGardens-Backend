@@ -28,9 +28,9 @@ export const typeDefs = `#graphql
   }
 
   type AuthPayload {
-  token: String!
-  user: User!
-}
+    token: String!
+    user: User!
+  }
 
   type DiaryEntry {
     id: ID!
@@ -59,18 +59,13 @@ export const typeDefs = `#graphql
     version: Int
   }
 
-
-  type AuthPayload {
-    user: User!
-  }
-
   type Query {
     user: User
     garden(period: GardenPeriod!, periodKey: String!): Garden
     paginatedDiaryEntries(limit: Int!, offset: Int!): [DiaryEntry!]!
     diaryEntry(dayKey: String!): DiaryEntry
     gardensByMonth(monthKey: String!): [Garden!]!
-    gardensByPeriod(period: GardenPeriod!):[Garden!]!
+    gardensByPeriod(period: GardenPeriod!): [Garden!]!
     currentDiaryDayKey: String!
   }
 
@@ -79,7 +74,7 @@ export const typeDefs = `#graphql
     login(email: String!, password: String!): AuthPayload!
     logout: Boolean!
     createDiaryEntry(text: String!): DiaryEntry!
-    requestGenerateGarden(period: GardenPeriod!, periodKey: String, gardenType:String): Garden!
+    requestGenerateGarden(period: GardenPeriod!, periodKey: String, gardenType: String): Garden!
     updateUserSettings(timezone: String!, dayRolloverHour: Int!): User!
     updateUserProfile(email: String!, displayName: String!): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!
@@ -89,6 +84,6 @@ export const typeDefs = `#graphql
     verifyEmail(token: String!): AuthPayload!
     markUserPremiumFromMobile: User!
     addRegenTokensFromMobile(amount: Int!): User!
-    regenerateGarden(gardenId:String!):Garden!
+    regenerateGarden(gardenId: String!): Garden!
   }
 `;

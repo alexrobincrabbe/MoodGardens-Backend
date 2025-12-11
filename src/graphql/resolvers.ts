@@ -1,34 +1,32 @@
 import GraphQLJSON from "graphql-type-json";
 import { mapGardenOut } from "../modules/gardens/lib/gardens.js";
-import { requireUser, type Context } from "../modules/users/lib/auth.js";
+import { requireUser, type Context } from "../auth/lib/auth.js";
 import { PrismaClient, GardenPeriod } from "@prisma/client";
 import { createQueries } from "./queries.js";
 import { createMutations } from "./mutations.js";
-
-type DiaryEntryParent = { dayKey: string };
+import { Services } from "./services.js";
+import type { DiaryEntryParent } from "../types.js";
 
 export function createResolvers(prisma: PrismaClient) {
+    // Create services once at the top level
+    const services = new Services(prisma);
+
     return {
         JSON: GraphQLJSON,
 
         DiaryEntry: {
             garden: async (parent: DiaryEntryParent, _args: unknown, ctx: Context) => {
                 const userId = requireUser(ctx);
-                const garden = await prisma.garden.findUnique({
-                    where: {
-                        userId_period_periodKey: {
-                            userId,
-                            period: GardenPeriod.DAY,
-                            periodKey: parent.dayKey,
-                        },
-                    },
+                return services.gardenService.getGarden({
+                    userId,
+                    period: GardenPeriod.DAY,
+                    periodKey: parent.dayKey,
                 });
-                return mapGardenOut(garden);
             },
         },
 
-        Query: createQueries(prisma),
+        Query: createQueries(services),
 
-        Mutation: createMutations(prisma)
+        Mutation: createMutations(services)
     };
 }

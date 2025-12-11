@@ -10,11 +10,13 @@ export function generateShareId() {
   return crypto.randomBytes(8).toString("hex"); 
 }
 
-export function mapGardenOut(garden: any) {
+import { type Garden } from "@prisma/client";
+
+export function mapGardenOut(garden: Garden | null) {
   if (!garden) return null;
   return {
     ...garden,
     shareUrl: shareUrlFor(garden.shareId),
-    version:garden.version,
+    version: garden.version,
   };
 }

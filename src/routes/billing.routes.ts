@@ -3,7 +3,7 @@ import { Router } from "express";
 import { stripe } from "../lib/stripe.js";
 import { prisma } from "../lib/prismaClient.js";
 import type { Request, Response } from "express";
-import { requireUser, requireUserFromRequest } from "../modules/users/lib/auth.js";
+import { requireUser, requireUserFromRequest } from "../auth/lib/auth.js";
 
 export const billingRouter = Router();
 
@@ -16,7 +16,10 @@ billingRouter.post(
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ 
+          error: "Authentication required",
+          message: "Your account could not be found. Please log in again."
+        });
       }
 
       // 1. Ensure Stripe customer
@@ -52,7 +55,10 @@ billingRouter.post(
       return res.json({ url: session.url });
     } catch (err) {
       console.error("[billing] create-checkout-session error:", err);
-      return res.status(500).json({ error: "Failed to create checkout session" });
+      return res.status(500).json({ 
+        error: "Failed to create checkout session",
+        message: "Unable to initialize payment. Please try again or contact support if the problem persists."
+      });
     }
   }
 );
@@ -68,7 +74,10 @@ billingRouter.post(
       if (!user || !user.stripeCustomerId) {
         return res
           .status(400)
-          .json({ error: "User does not have a Stripe customer" });
+          .json({ 
+            error: "Billing account not found",
+            message: "You need an active subscription to access the billing portal. Please subscribe first."
+          });
       }
 
       const portalSession = await stripe.billingPortal.sessions.create({
@@ -79,7 +88,10 @@ billingRouter.post(
       return res.json({ url: portalSession.url });
     } catch (err) {
       console.error("[billing] create-portal-session error:", err);
-      return res.status(500).json({ error: "Failed to create portal session" });
+      return res.status(500).json({ 
+        error: "Failed to create billing portal session",
+        message: "Unable to access billing portal. Please try again or contact support if the problem persists."
+      });
     }
   }
 );

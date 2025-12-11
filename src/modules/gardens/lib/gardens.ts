@@ -15,5 +15,6 @@ export function mapGardenOut(garden: any) {
   return {
     ...garden,
     shareUrl: shareUrlFor(garden.shareId),
+    version:garden.version,
   };
 }

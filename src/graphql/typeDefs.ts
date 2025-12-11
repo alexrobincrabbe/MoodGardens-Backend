@@ -17,7 +17,7 @@ export const typeDefs = `#graphql
     email: String!
     isPremium: Boolean
     premiumSince: String
-    regenerateTokens: Int!  # 👈 new field
+    regenerateTokens: Int!
     createdAt: String!
     displayName: String!
     timezone: String!
@@ -56,6 +56,7 @@ export const typeDefs = `#graphql
     shareUrl: String
     createdAt: String!
     updatedAt: String!
+    version: Int
   }
 
 
@@ -88,5 +89,6 @@ export const typeDefs = `#graphql
     verifyEmail(token: String!): AuthPayload!
     markUserPremiumFromMobile: User!
     addRegenTokensFromMobile(amount: Int!): User!
+    regenerateGarden(gardenId:String!):Garden!
   }
 `;

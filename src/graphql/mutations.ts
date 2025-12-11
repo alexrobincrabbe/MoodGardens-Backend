@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { createRegisterMutation, createLoginMutation, createLoginWithGoogleMutation, createLogoutMutation } from "../modules/users/resolvers/auth.js";
 import { createCreateDiaryEntryMutation } from "../modules/diary/resolvers/diaryEntries.js";
 import { createUpdateUserSettingsMutation, createUpdateUserProfileMutation, createChangePasswordMutation } from "../modules/users/resolvers/userProfile.js";
-import { createRequestGenerateGardenMutation } from "../modules/gardens/resolvers/gardens.js";
+import { createRegenerateGardenMutation, createRequestGenerateGardenMutation } from "../modules/gardens/resolvers/gardens.js";
 import { createResetPasswordMutation, createRequestPasswordResetMutation, createVerifyEmailMutation } from "../modules/users/resolvers/mail.js";
 import { createMarkUserPremiumFromMobileMutation, createAddRegenTokensFromMobileMutation } from "../modules/users/resolvers/premium.js";
 
@@ -24,6 +24,7 @@ export function createMutations(prisma: PrismaClient) {
             createDiaryEntry: createCreateDiaryEntryMutation(prisma),
             //Gardens
             requestGenerateGarden: createRequestGenerateGardenMutation(prisma),
+            regenerateGarden: createRegenerateGardenMutation(prisma),
             //User Profile
             updateUserSettings: createUpdateUserSettingsMutation(prisma),
             updateUserProfile: createUpdateUserProfileMutation(prisma),

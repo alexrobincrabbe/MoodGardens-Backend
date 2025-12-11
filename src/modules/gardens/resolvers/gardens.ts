@@ -12,7 +12,7 @@ import { decryptTextForUser } from "../../../crypto/diaryEncryption.js";
 
 type GardenQueryArgs = { period: GardenPeriod; periodKey: string };
 type GardenPeriodQueryArgs = { period: GardenPeriod };
-type GardenArgs = { period: GardenPeriod; periodKey: string, gardenType:GardenType };
+type GardenArgs = { period: GardenPeriod; periodKey: string, gardenType: GardenType };
 
 // 🔐 Helper: decrypt a single garden's summary if encrypted
 async function decryptGardenSummaryIfNeeded(
@@ -164,7 +164,7 @@ export function createRequestGenerateGardenMutation(prisma: PrismaClient) {
                     userId,
                     period: args.period,
                     periodKey,
-                    type:args.gardenType,
+                    type: args.gardenType,
                     status: GardenStatus.PENDING,
                     summary: "Your garden is growing…",
                     progress: 0,
@@ -186,3 +186,39 @@ export function createRequestGenerateGardenMutation(prisma: PrismaClient) {
         }
     };
 }
+
+export function createRegenerateGardenMutation(prisma: PrismaClient) {
+    return async (_: unknown, args: { gardenId: string }, ctx: Context) => {
+        const userId = requireUser(ctx);
+
+        // Atomically decrement tokens (with the guard we discussed earlier)
+        const updateResult = await prisma.user.updateMany({
+            where: { id: userId, regenerateTokens: { gt: 0 } },
+            data: { regenerateTokens: { decrement: 1 } },
+        });
+
+        if (updateResult.count === 0) {
+            throw new Error("You have no regenerate tokens left.");
+        }
+
+        // 🔴 IMPORTANT PART: flip garden to PENDING and reset progress
+        const garden = await prisma.garden.update({
+            where: { id: args.gardenId },
+            data: {
+                status: "PENDING",
+                progress: 0,
+                updatedAt: new Date(),
+            },
+        });
+
+        // enqueue job _after_ status is pending
+        await gardenQueue.add("generate", {
+            gardenId: garden.id,
+            period: garden.period,
+            periodKey: garden.periodKey,
+        });
+
+        return mapGardenOut(garden);
+    };
+}
+

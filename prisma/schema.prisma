@@ -90,6 +90,7 @@ model Garden {
   shareId   String?      @unique
   imageUrl  String?
   publicId  String?      @db.VarChar(512)
+  version   Int          @default(1)
   // ── Generation metadata ───────────────
   shortTheme          String   @default("")
   valence             String   @default("")

@@ -44,10 +44,6 @@ async function main() {
                 return res.status(400).send(`Webhook Error: ${err.message}`);
             }
 
-            // ------------------------------------------------------------
-            // ⭐ THIS is the part I meant:
-            // “In your /billing/webhook route, after constructing event”
-            // ------------------------------------------------------------
 
             try {
                 switch (event.type) {

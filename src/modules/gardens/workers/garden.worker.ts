@@ -9,6 +9,7 @@ import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { buildPromptFromDiary } from "../buildPromptFromDiary.js"; // now async
 import { decryptDiaryForUser, decryptGardenSummaryForUser } from "../../../crypto/diaryEncryption.js";
 
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export const gardenWorker = new Worker<GenerateGardenJob>(
@@ -199,6 +200,7 @@ async function updateGarden({ garden, uploadResult, finalSummary }: { garden: Ga
             publicId: uploadResult.public_id,
             summary: finalSummary,
             progress: 100,
+            version: uploadResult.version, 
         },
     });
 

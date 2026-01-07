@@ -44,17 +44,29 @@ jobs:
         run: |
           az extension add --name containerapp --yes || az extension update --name containerapp
 
-      - name: Deploy to Azure Container Apps (az CLI)
+      - name: Deploy to Azure Container Apps / Job (az CLI)
         run: |
           set -e
-          echo "Deploying image: ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          IMAGE="${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "Deploying image: $IMAGE"
+
+          # API
           az containerapp update \
             --name mood-gardens-api \
             --resource-group mood-gardens-rg \
-            --image ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --image "$IMAGE" \
             --output table
+
+          # Worker
           az containerapp update \
             --name mood-gardens-garden-worker \
+            --resource-group mood-gardens-rg \
+            --image "$IMAGE" \
+            --output table
+
+          # Scheduled aggregation job (so next run uses the new image)
+          az containerapp job update \
+            --name moodgardens-aggregation-job \
             --resource-group mood-gardens-rg \
             --image "$IMAGE" \
             --output table
